@@ -55,35 +55,25 @@ static double MAX_DIST_SQD = 1; // maximum distance between to centers to consid
 int theObject[2] = {0,0};
 //Rect objectBoundingRectangle = Rect(0,0,0,0);
 
+void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 void searchForMovement(Mat thresholdImage, Mat &cameraFeed);
 int char_to_int(char* c);
-string intToString(int number);
+string int_to_str(int i);
 void show_help();
 
 
 int main(int argc, char** argv){
 
-	//some boolean variables for added functionality
-	bool objectDetected = false;
-	//these two can be toggled by pressing 'd' or 't'
 	bool debugMode = false;
 	bool trackingEnabled = false;
-	//pause and resume code
 	bool pause = false;
-	//set up the matrices that we will need
-	//the two frames we will be comparing
-	Mat frame1,frame2;
-	//their grayscale images (needed for absdiff() function)
-	Mat grayImage1,grayImage2;
-	//resulting difference image
-	Mat differenceImage;
-	//thresholded difference image (for use in findContours() function)
-	Mat thresholdImage;
-	//video capture object.
-	VideoCapture capture;
-	//if frame reads work or fail
 	bool success;
 
+	Mat frame1, frame2;
+	Mat grayImage1, grayImage2;
+	Mat thresholdImage;
+	
+	VideoCapture capture;
 
   if(argc < 2) 
 	  show_help();
@@ -131,32 +121,7 @@ int main(int argc, char** argv){
 
 			//convert frame2 to gray scale for frame differencing
 			cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
-			absdiff(grayImage1, grayImage2, differenceImage);
-		  threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
-
-			if(debugMode) {
-				namedWindow("Difference Image", CV_WINDOW_NORMAL);
-				imshow("Difference Image", differenceImage);
-				resizeWindow("Difference Image", 512, 384);
-				namedWindow("Threshold Image", CV_WINDOW_NORMAL);
-				imshow("Threshold Image", thresholdImage);
-				resizeWindow("Threshold Image", 512, 384);
-			} else {
-				destroyWindow("Difference Image");
-				destroyWindow("Threshold Image");
-			}
-
-		  blur(thresholdImage, thresholdImage, Size(BLUR_SIZE, BLUR_SIZE));
-			threshold(thresholdImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
-
-			if(debugMode){
-				namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
-				imshow("Final Threshold Image", thresholdImage);
-				resizeWindow("Final Threshold Image", 512, 384);
-			}
-			else {
-				destroyWindow("Final Threshold Image");
-			}
+			compare_frames(grayImage1, grayImage2, debugMode, thresholdImage)
 
 			if(trackingEnabled) {
 				searchForMovement(thresholdImage, frame1);
@@ -165,10 +130,7 @@ int main(int argc, char** argv){
 			//show our captured frame
 			imshow("Frame1",frame1);
 			resizeWindow("Frame1", 512, 384);
-			//check to see if a button has been pressed.
-			//this 10ms delay is necessary for proper operation of this program
-			//if removed, frames will not have enough time to referesh and a blank 
-			//image will appear.
+
 			switch(waitKey(10)){
 			case 1048603:
 			// case 27: //'esc' key has been pressed, exit program.
@@ -176,20 +138,20 @@ int main(int argc, char** argv){
 			case 1048692:
 			// case 116: //'t' has been pressed. this will toggle tracking
 				trackingEnabled = !trackingEnabled;
-				if(trackingEnabled == false) cout<<"Tracking disabled."<<endl;
-				else cout<<"Tracking enabled."<<endl;
+				if(trackingEnabled == false) cout << "Tracking disabled." << endl;
+				else cout << "Tracking enabled." << endl;
 				break;
 			case 1048676:
 			// case 100: //'d' has been pressed. this will debug mode
 				debugMode = !debugMode;
-				if(debugMode == false) cout<<"Debug mode disabled."<<endl;
-				else cout<<"Debug mode enabled."<<endl;
+				if(debugMode == false) cout << "Debug mode disabled." << endl;
+				else cout << "Debug mode enabled." << endl;
 				break;
 			case 1048688:
 			// case 112: //'p' has been pressed. this will pause/resume the code.
 				pause = !pause;
 				if(pause == true){ 
-					cout<<"Code paused, press 'p' again to resume"<<endl;
+					cout << "Code paused, press 'p' again to resume" << endl;
 					while (pause == true){
 						//stay in this loop until 
 						switch (waitKey()){
@@ -198,7 +160,7 @@ int main(int argc, char** argv){
 						// case 112: 
 							//change pause back to false
 							pause = false;
-							cout<<"Code resumed."<<endl;
+							cout << "Code resumed." << endl;
 							break;
 						}
 					}
@@ -215,54 +177,77 @@ int main(int argc, char** argv){
 	} // outer while loop (infinite)
 
 	return 0;
-
 }
 
-void searchForMovement(Mat thresholdImage, Mat &cameraFeed){
+void searchForMovement(Mat thresholdImage, Mat &display){
 
-	bool objectDetected=false;
 	int obj_count = 0, i = 0;
-	double obj_area = 0;
+	int mid_row = thresholdImage.rows >> 1; // half way across the screen
+	double obj_area = 0, distance;
 	Mat temp;
 	Rect2d temp_rect;
 	vector<Rect2d> obj_rects;
 	thresholdImage.copyTo(temp);
 	
-	vector< vector<Point> > contours;
+	vector< vector<Point> > contours_0;
+	vector< vector<Point> > contours_1;
 	vector<Vec4i> hierarchy;
 
 	if(trackingEnabled) {
 		searchForMovement(thresholdImage, frame1);
 	}
-	
-	// retrieves external contours
-	findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
-	if(contours.size() > 0){
-		i = contours.size()-1;
-		do {
-			temp_rect = boundingRect(contours.at(i));
-			obj_area = temp_rect.area();
+	if(/* somthing is even? */){
+		findContours(temp, contours_1, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+		if(contours_1.size() > 0){
+			i = contours_1.size()-1;
+			for(i; i >= 0; i--) { //TODO make this iterators
+				temp_rect = boundingRect(contours_1.at(i));
+				obj_area = temp_rect.area();
 
-			if(obj_area >= MIN_OBJ_AREA){
-				obj_count++;
-				obj_rects.push_back(Rect2d(temp_rect));
+				if(obj_area >= MIN_OBJ_AREA){
+					obj_count++;
+					obj_rects.push_back(Rect2d(temp_rect));
+					// TODO center get
+					for(int j = 0; j < contours_2.size(); j++) { //TODO iterators
+						//TODO find closest with some minimum
+					}
+					//TODO give ID (new or old)
+					//TODO check if center crossed and count
+				} else {
+					//TODO remove small contours
+				}
 			}
+		}
 
-			i--;
-		} while(i >= 0);
+	} else {
+		findContours(temp, contours_2, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+		if(contours_2.size() > 0){
+			i = contours_2.size()-1;
+			for(i; i >= 0; i--) {
+				temp_rect = boundingRect(contours_2.at(i));
+				obj_area = temp_rect.area();
+
+				if(obj_area >= MIN_OBJ_AREA){
+					obj_count++;
+					obj_rects.push_back(Rect2d(temp_rect));
+				}
+			} 
+		}
 	}
-
+	
 	for(unsigned j = 0; j < obj_rects.size(); j++) {
-	  rectangle( cameraFeed, obj_rects[j], Scalar( 255, 0, 0 ), 2, 1 ); // draw rectangle around object
+	  rectangle( display, obj_rects[j], Scalar( 255, 0, 0 ), 2, 1 ); // draw rectangle around object
 	  int mid_x = obj_rects[j].x + (obj_rects[j].width / 2);
 	  int mid_y = obj_rects[j].y - (obj_rects[j].height / 2);
 	}
 }
 
 //@compares two grayscale images using simple background sutraction
-//
-void compare_frames(Mat &grayImage1, Mat grayImage2, Mat &thresholdImage) {
+//	also displays the stages if requested
+void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage) {
+	Mat differenceImage;
+
 	absdiff(grayImage1, grayImage2, differenceImage);
 	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
 
@@ -289,8 +274,13 @@ void compare_frames(Mat &grayImage1, Mat grayImage2, Mat &thresholdImage) {
 	else {
 		destroyWindow("Final Threshold Image");
 	}
+}
+
+void draw_rectangles() {
 
 }
+
+/******************************* utilities ********************************/
 
 int char_to_int(char* c) {
 	int i = 0; 
@@ -308,10 +298,9 @@ int char_to_int(char* c) {
 	return ret;
 }
 
-//int to string helper function
-string intToString(int number){
-	std::stringstream ss;
-	ss << number;
+string int_to_str(int i){
+	stringstream ss;
+	ss << i;
 	return ss.str();
 }
 
