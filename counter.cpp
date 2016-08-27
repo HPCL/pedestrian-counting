@@ -56,7 +56,10 @@ int theObject[2] = {0,0};
 //Rect objectBoundingRectangle = Rect(0,0,0,0);
 
 void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
-void searchForMovement(Mat thresholdImage, Mat &cameraFeed);
+void search_for_movement(Mat thresholdImage, Mat &cameraFeed, bool loop_switch);
+void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
+void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
+
 int char_to_int(char* c);
 string int_to_str(int i);
 void show_help();
@@ -67,10 +70,11 @@ int main(int argc, char** argv){
 	bool debugMode = false;
 	bool trackingEnabled = false;
 	bool pause = false;
-	bool success;
+	bool success, loop_switch;
 
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
+	vector< vector<Point> > contours_0, contours_1;
 	Mat thresholdImage;
 	
 	VideoCapture capture;
@@ -93,7 +97,6 @@ int main(int argc, char** argv){
 
 	while(1){
 
-		//we can loop the video by re-opening the capture every time the video reaches its last frame
 		capture.open(vid_name);
 		if(!capture.isOpened()){
 			cout<<"ERROR ACQUIRING VIDEO FEED\n";
@@ -101,75 +104,37 @@ int main(int argc, char** argv){
 			return -1;
 		}
 
-		//read first frame
 		success = capture.read(frame1);
 		if(!success){
 			cout << endl << "ERROR: frame 1 failed to be read" << endl;
 			exit(1);
 		}
-		//convert frame1 to gray scale for frame differencing
 		cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
-		//copy second frame
 		success = capture.read(frame2);
 		if(!success){
 			cout << endl << "ERROR: frame 2 failed to be read" << endl;
 			exit(1);
 		}
 
-		//while( !(frame2.rows == 0 || frame2.cols ==0) ) {
+		loop_switch = true;
 		while( success ) {
 
-			//convert frame2 to gray scale for frame differencing
 			cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
 			compare_frames(grayImage1, grayImage2, debugMode, thresholdImage)
 
 			if(trackingEnabled) {
-				searchForMovement(thresholdImage, frame1);
+				search_for_movement(thresholdImage, frame1, loop_switch, contours_0, contours_1);
 			}
 
-			//show our captured frame
 			imshow("Frame1",frame1);
 			resizeWindow("Frame1", 512, 384);
 
-			switch(waitKey(10)){
-			case 1048603:
-			// case 27: //'esc' key has been pressed, exit program.
-				return 0;
-			case 1048692:
-			// case 116: //'t' has been pressed. this will toggle tracking
-				trackingEnabled = !trackingEnabled;
-				if(trackingEnabled == false) cout << "Tracking disabled." << endl;
-				else cout << "Tracking enabled." << endl;
-				break;
-			case 1048676:
-			// case 100: //'d' has been pressed. this will debug mode
-				debugMode = !debugMode;
-				if(debugMode == false) cout << "Debug mode disabled." << endl;
-				else cout << "Debug mode enabled." << endl;
-				break;
-			case 1048688:
-			// case 112: //'p' has been pressed. this will pause/resume the code.
-				pause = !pause;
-				if(pause == true){ 
-					cout << "Code paused, press 'p' again to resume" << endl;
-					while (pause == true){
-						//stay in this loop until 
-						switch (waitKey()){
-							//a switch statement inside a switch statement? Mind blown.
-						case 1048688:
-						// case 112: 
-							//change pause back to false
-							pause = false;
-							cout << "Code resumed." << endl;
-							break;
-						}
-					}
-				}
-			} //big switch statement
+			interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
 
 			frame2.copyTo(frame1);
 			cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
 			success = capture.read(frame2);
+			loop_switch = !loop_switch;
 		} // inner while loop
 		
 		//release the capture before re-opening and looping again.
@@ -179,7 +144,7 @@ int main(int argc, char** argv){
 	return 0;
 }
 
-void searchForMovement(Mat thresholdImage, Mat &display){
+void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, vector< vector<Point> > &contours_0, vector< vector<Point> > &contours_1){
 
 	int obj_count = 0, i = 0;
 	int mid_row = thresholdImage.rows >> 1; // half way across the screen
@@ -187,29 +152,26 @@ void searchForMovement(Mat thresholdImage, Mat &display){
 	Mat temp;
 	Rect2d temp_rect;
 	vector<Rect2d> obj_rects;
+	vector<Point2D> centers;
+	Moments temp_moment;
+
 	thresholdImage.copyTo(temp);
 	
-	vector< vector<Point> > contours_0;
-	vector< vector<Point> > contours_1;
 	vector<Vec4i> hierarchy;
 
-	if(trackingEnabled) {
-		searchForMovement(thresholdImage, frame1);
-	}
-
-	if(/* somthing is even? */){
+	if(loop_switch){
 		findContours(temp, contours_1, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 		if(contours_1.size() > 0){
-			i = contours_1.size()-1;
-			for(i; i >= 0; i--) { //TODO make this iterators
-				temp_rect = boundingRect(contours_1.at(i));
+			for(vector< vector<Point> >::iterator it_0 = contours_0.begin(); it_0 != contours_0.end(); it_0++) {
+				temp_rect = boundingRect(*it_0);
 				obj_area = temp_rect.area();
 
 				if(obj_area >= MIN_OBJ_AREA){
 					obj_count++;
 					obj_rects.push_back(Rect2d(temp_rect));
-					// TODO center get
-					for(int j = 0; j < contours_2.size(); j++) { //TODO iterators
+					temp_moment = moments(*it_0)
+					centers.push_back(Point2D(temp_moment.m10/temp_moment.m00 , temp_moment.m01/temp_moment.m00));
+					for(vector< vector<Point> >::iterator it_1 = contours_1.begin(); it_1 != contours_1.end(); it_1++) { 
 						//TODO find closest with some minimum
 					}
 					//TODO give ID (new or old)
@@ -217,10 +179,12 @@ void searchForMovement(Mat thresholdImage, Mat &display){
 				} else {
 					//TODO remove small contours
 				}
+			//TODO clear one of the contours?
 			}
 		}
 
 	} else {
+		//TODO copy and paste this whole thing from above (or maybe make it a func)
 		findContours(temp, contours_2, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 		if(contours_2.size() > 0){
 			i = contours_2.size()-1;
@@ -235,12 +199,9 @@ void searchForMovement(Mat thresholdImage, Mat &display){
 			} 
 		}
 	}
-	
-	for(unsigned j = 0; j < obj_rects.size(); j++) {
-	  rectangle( display, obj_rects[j], Scalar( 255, 0, 0 ), 2, 1 ); // draw rectangle around object
-	  int mid_x = obj_rects[j].x + (obj_rects[j].width / 2);
-	  int mid_y = obj_rects[j].y - (obj_rects[j].height / 2);
-	}
+
+	draw_rectangles(obj_rects, display);
+
 }
 
 //@compares two grayscale images using simple background sutraction
@@ -276,8 +237,53 @@ void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thres
 	}
 }
 
-void draw_rectangles() {
+//@interpret keyboard input
+void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause) {
+	switch(c){
+	case 1048603:
+	// case 27: //'esc' key has been pressed, exit program.
+		cout << "Have a nice day! :)" << endl;
+		exit(0);
+	case 1048692:
+	// case 116: //'t' has been pressed. this will toggle tracking
+		trackingEnabled = !trackingEnabled;
+		if(trackingEnabled == false) cout << "Tracking disabled." << endl;
+		else cout << "Tracking enabled." << endl;
+		break;
+	case 1048676:
+	// case 100: //'d' has been pressed. this will debug mode
+		debugMode = !debugMode;
+		if(debugMode == false) cout << "Debug mode disabled." << endl;
+		else cout << "Debug mode enabled." << endl;
+		break;
+	case 1048688:
+	// case 112: //'p' has been pressed. this will pause/resume the code.
+		pause = !pause;
+		if(pause == true){ 
+			cout << "Code paused, press 'p' again to resume" << endl;
+			while (pause == true){
+				//stay in this loop until 
+				switch (waitKey()){
+					//a switch statement inside a switch statement? Mind blown.
+				case 1048688:
+				// case 112: 
+					//change pause back to false
+					pause = false;
+					cout << "Code resumed." << endl;
+					break;
+				}
+			}
+		}
+	} 
+}
 
+//@draws the rectagles
+void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display) {
+	for(unsigned j = 0; j < obj_rects.size(); j++) {
+	  rectangle( display, obj_rects[j], Scalar( 255, 0, 0 ), 2, 1 ); // draw rectangle around object
+	  int mid_x = obj_rects[j].x + (obj_rects[j].width / 2);
+	  int mid_y = obj_rects[j].y - (obj_rects[j].height / 2);
+	}
 }
 
 /******************************* utilities ********************************/
