@@ -75,6 +75,7 @@ int main(int argc, char** argv){
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
 	vector< vector<Point> > contours_0, contours_1;
+	vector<Point2d> centers_0, centers_1;
 	Mat thresholdImage;
 	
 	VideoCapture capture;
@@ -144,7 +145,9 @@ int main(int argc, char** argv){
 	return 0;
 }
 
-void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, vector< vector<Point> > &contours_0, vector< vector<Point> > &contours_1){
+void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, 
+												vector< vector<Point> > &contours_0, vector< vector<Point> > &contours_1
+												vector<Point2d> &centers_0, vector<Point2d> &centers_1){
 
 	int obj_count = 0, i = 0;
 	int mid_row = thresholdImage.rows >> 1; // half way across the screen
@@ -152,8 +155,8 @@ void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, vec
 	Mat temp;
 	Rect2d temp_rect;
 	vector<Rect2d> obj_rects;
-	vector<Point2D> centers;
 	Moments temp_moment;
+	Point2d diff;
 
 	thresholdImage.copyTo(temp);
 	
@@ -170,9 +173,12 @@ void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, vec
 					obj_count++;
 					obj_rects.push_back(Rect2d(temp_rect));
 					temp_moment = moments(*it_0)
-					centers.push_back(Point2D(temp_moment.m10/temp_moment.m00 , temp_moment.m01/temp_moment.m00));
-					for(vector< vector<Point> >::iterator it_1 = contours_1.begin(); it_1 != contours_1.end(); it_1++) { 
-						//TODO find closest with some minimum
+					centers_0.push_back(Point2d(temp_moment.m10/temp_moment.m00 , temp_moment.m01/temp_moment.m00));
+					for(vector<Point2d>::iterator it_1 = centers_1.begin(); it_1 != centers_1.end(); it_1++) {
+						diff = centers_0.end() - 
+						if( ((diff.x * diff.x) + (diff.y * diff.y)) < MAX_DIST_SQD) {
+							// is minimum?
+						}
 					}
 					//TODO give ID (new or old)
 					//TODO check if center crossed and count
