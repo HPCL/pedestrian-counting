@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
+#include "Object.h"
 
 using namespace std;
 using namespace cv;
@@ -74,8 +75,7 @@ int main(int argc, char** argv){
 
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
-	vector< vector<Point> > contours_0, contours_1;
-	vector<Point2d> centers_0, centers_1;
+	vector<Object> objects_0, objects_1;
 	Mat thresholdImage;
 	
 	VideoCapture capture;
@@ -146,46 +146,52 @@ int main(int argc, char** argv){
 }
 
 void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, 
-												vector< vector<Point> > &contours_0, vector< vector<Point> > &contours_1
-												vector<Point2d> &centers_0, vector<Point2d> &centers_1){
+												vector<Object> &objects_0, vector<Object> &objects_1){
 
 	int obj_count = 0, i = 0;
 	int mid_row = thresholdImage.rows >> 1; // half way across the screen
-	double obj_area = 0, distance;
+	double obj_area = 0, dist = -1, min_dist = -1;
+	vector< vector<Point> > contours;
 	Mat temp;
 	Rect2d temp_rect;
 	vector<Rect2d> obj_rects;
-	Moments temp_moment;
-	Point2d diff;
+	vector<Vec4i> hierarchy;
+	Object *prev_obj;
 
 	thresholdImage.copyTo(temp);
 	
-	vector<Vec4i> hierarchy;
-
 	if(loop_switch){
-		findContours(temp, contours_1, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+		findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 		if(contours_1.size() > 0){
-			for(vector< vector<Point> >::iterator it_0 = contours_0.begin(); it_0 != contours_0.end(); it_0++) {
+			for(vector< vector<Point> >::iterator it_0 = contours.begin(); it_0 != contours.end(); it_0++) {
 				temp_rect = boundingRect(*it_0);
 				obj_area = temp_rect.area();
 
 				if(obj_area >= MIN_OBJ_AREA){
 					obj_count++;
 					obj_rects.push_back(Rect2d(temp_rect));
-					temp_moment = moments(*it_0)
-					centers_0.push_back(Point2d(temp_moment.m10/temp_moment.m00 , temp_moment.m01/temp_moment.m00));
-					for(vector<Point2d>::iterator it_1 = centers_1.begin(); it_1 != centers_1.end(); it_1++) {
-						diff = centers_0.end() - 
-						if( ((diff.x * diff.x) + (diff.y * diff.y)) < MAX_DIST_SQD) {
-							// is minimum?
+					objects_0.push_back(Point2d(*it_0);
+					prev_obj = NULL;
+					for(vector<Object>::iterator it_1 = objects_1.begin(); it_1 != objects_1.end(); it_1++) {
+						dist = it_1->find_distance_sqd(*(objects_0.end());
+						if(dist <= MAX_DIST_SQD) {
+							if( (min_dist == -1) || (dist < min_dist) ) {
+								min_dist = dist;
+								min_id = it_1->get_id();
+							}
 						}
 					}
-					//TODO give ID (new or old)
-					//TODO check if center crossed and count
+					if(prev_obj == NULL) {
+						//TODO update id
+						//TODO check if center crossed and count
+					} else {
+						
+					}
+
 				} else {
-					//TODO remove small contours
+					//TODO remove small contours (maybe not)
 				}
-			//TODO clear one of the contours?
+			//TODO clear objects_1?
 			}
 		}
 
