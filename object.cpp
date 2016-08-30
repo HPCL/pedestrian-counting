@@ -33,6 +33,9 @@
 using namespace std;
 using namespace cv;
 
+
+/*************************** Constructors ***************************/
+
 Object::Object() {
   id = -1;
   is_counted = false;
@@ -51,10 +54,18 @@ Object::Object(Point2d &new_center, int new_id) {
   is_counted = false;
 }
 
+Object::Object(Object other) {
+  center = Point2d(other.get_center());
+  id = other.get_id();
+  is_counted = other.get_is_counted();
+}
+
 Object::~Object() {
 
 }
 
+
+/*************************** Other Members ***************************/
 
 double Object::find_distance_sqd(Point2d &other_center) {
   Point2d diff = center - other_center;
@@ -70,6 +81,11 @@ double Object::find_distance_sqd(Object &other_object) {
 
 void Object::set_center(Point2d &new_center) {
   center = Point2d(new_center);
+}
+
+void Object::set_center(vector<Point> &contour) {
+  Moments temp_moment = moments(contour);
+  center = Point2d(temp_moment.m10/temp_moment.m00 , temp_moment.m01/temp_moment.m00);
 }
 
 void Object::set_id(int new_id) {
