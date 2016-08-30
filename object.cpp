@@ -41,21 +41,21 @@ Object::Object() {
   is_counted = false;
 }
 
-Object::Object(vector<Point> &contour) {
+Object::Object(const vector<Point> &contour) {
   Moments temp_moment = moments(contour);
   center = Point2d(temp_moment.m10/temp_moment.m00 , temp_moment.m01/temp_moment.m00);
   id = -1;
   is_counted = false;
 }
 
-Object::Object(Point2d &new_center, int new_id) {
+Object::Object(const Point2d &new_center, int new_id) {
   center = Point2d(new_center);
   id = new_id;
   is_counted = false;
 }
 
-Object::Object(Object other) {
-  center = Point2d(other.get_center());
+Object::Object(const Object &other) {
+  other.get_center(center);
   id = other.get_id();
   is_counted = other.get_is_counted();
 }
@@ -67,13 +67,15 @@ Object::~Object() {
 
 /*************************** Other Members ***************************/
 
-double Object::find_distance_sqd(Point2d &other_center) {
+double Object::find_distance_sqd(const Point2d &other_center) const {
   Point2d diff = center - other_center;
   return (diff.x * diff.x) + (diff.y * diff.y);
 }
 
-double Object::find_distance_sqd(Object &other_object) {
-  return find_distance(other_object.get_center());
+double Object::find_distance_sqd(const Object &other_object) const {
+  Point2d other_center;
+  other_object.get_center(other_center);
+  return find_distance_sqd(other_center);
 }
 
 
@@ -92,21 +94,21 @@ void Object::set_id(int new_id) {
   id = new_id;
 }
 
-void Object::set_is_counted(bool new_is_counted = true){
+void Object::set_is_counted(bool new_is_counted /* = true*/){
   is_counted = new_is_counted;
 }
 
 
 /*************************** Getters ***************************/
 
-void Object::get_center(Point2d &out_center) {
+void Object::get_center(Point2d &out_center) const {
   out_center = Point2d(center);
 }
 
-int  Object::get_id() {
+int  Object::get_id() const {
   return id;
 }
 
-bool Object::get_is_counted() {
+bool Object::get_is_counted() const {
   return is_counted;
 }

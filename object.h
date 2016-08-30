@@ -32,6 +32,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+
 #include <opencv/cv.hpp>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,23 +48,23 @@ public:
   //@creates new object
   //@post id set to -1, is_counted to false
   //      center is center of mass of contour
-  Object(vector<Point> contour);
+  Object(const vector<Point> &contour);
   //@creates new object
   //@post is_counted set to false, others set to inputs
-  Object(Point2d new_center, int new_id);
+  Object(const Point2d &new_center, int new_id);
   //@copies input object to a new one
-  Object(Point2d new_center, int new_id);
+  Object(const Object &other);
   //@default destructor
   ~Object();
 
   //@canlculate the distance between the center and the input point
   //@pre other center is defined
   //@returns the euclidian distance ^2 (because sqrt is $$$)
-  double find_distance_sqd(Point2d other_center);
+  double find_distance_sqd(const Point2d &other_center) const;
   //@canlculate the distance between the center and the center of the input
   //@pre center of other_object is defined
   //@returns the euclidian distance ^2 (because sqrt is $$$)
-  double find_distance_sqd(Object other_object);
+  double find_distance_sqd( const Object &other_object) const;
 
   //@sets center to input
   void set_center(Point2d &new_center);
@@ -75,11 +76,11 @@ public:
   void set_is_counted(bool new_is_counted = true);
 
   //@copies center to out_center
-  void get_center(Point2d &out_center);
+  void get_center(Point2d &out_center) const;
   //@returns id
-  int  get_id();
+  int  get_id() const;
   //@returns is_counted
-  bool Object::get_is_counted();
+  bool get_is_counted() const;
 
 
 private:

@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
-#include "Object.h"
+#include "object.h"
 
 using namespace std;
 using namespace cv;
@@ -53,8 +53,11 @@ static double MIN_OBJ_AREA = 1000;
 static double MAX_DIST_SQD = 1; // maximum distance between to centers to consider it one object
 
 void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
-void search_for_movement(Mat thresholdImage, Mat &cameraFeed, bool loop_switch);
+void search_for_movement(Mat thresholdImage, Mat &display, 
+												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
+												vector<Object> &objects_0, vector<Object> &objects_1);
 char is_center_crossed(Point2d &a, Point2d &b, double middle);
+char is_center_crossed(Object &obj_a, Object &obj_b, double middle);
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
 
@@ -120,7 +123,7 @@ int main(int argc, char** argv){
 		while( success ) {
 
 			cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
-			compare_frames(grayImage1, grayImage2, debugMode, thresholdImage)
+			compare_frames(grayImage1, grayImage2, debugMode, thresholdImage);
 
 			if(trackingEnabled) {
 				search_for_movement( thresholdImage, frame1, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
@@ -171,14 +174,14 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 				if(obj_area >= MIN_OBJ_AREA){
 					obj_count++;
 					obj_rects.push_back(Rect2d(temp_rect));
-					objects_0.push_back(Point2d(*it_0);
+					objects_0.push_back(Object(*it_0));
 					prev_obj = NULL;
 					for(vector<Object>::iterator it_1 = objects_1.begin(); it_1 != objects_1.end(); it_1++) {
-						dist = it_1->find_distance_sqd(*(objects_0.end());
+						dist = it_1->find_distance_sqd(*objects_0.end());
 						if(dist <= MAX_DIST_SQD) {
 							if( (min_dist == -1) || (dist < min_dist) ) {
 								min_dist = dist;
-								prev_obj = it_1;
+								prev_obj = &(*it_1);
 							}
 						}
 					} //inner for
@@ -186,7 +189,7 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 						objects_0.end()->set_id(next_id++);
 					} else {
 						objects_0.end()->set_id(prev_obj->get_id());
-						switch() {
+						switch(is_center_crossed(*prev_obj, *objects_0.end(), mid_row)) {
 						case 'R':
 							objects_0.end()->set_is_counted();
 							count_LR++;
@@ -211,14 +214,14 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 				if(obj_area >= MIN_OBJ_AREA){
 					obj_count++;
 					obj_rects.push_back(Rect2d(temp_rect));
-					objects_1.push_back(Point2d(*it_0);
+					objects_1.push_back(Object(*it_0));
 					prev_obj = NULL;
 					for(vector<Object>::iterator it_1 = objects_0.begin(); it_1 != objects_0.end(); it_1++) {
-						dist = it_1->find_distance_sqd(*(objects_1.end());
+						dist = it_1->find_distance_sqd(*objects_1.end());
 						if(dist <= MAX_DIST_SQD) {
 							if( (min_dist == -1) || (dist < min_dist) ) {
 								min_dist = dist;
-								prev_obj = it_1;
+								prev_obj = &(*it_1);
 							}
 						}
 					}
@@ -226,7 +229,7 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 						objects_1.end()->set_id(next_id++);
 					} else {
 						objects_1.end()->set_id(prev_obj->get_id());
-						switch() {
+						switch(is_center_crossed(*prev_obj, *objects_1.end(), mid_row)) {
 						case 'R':
 							objects_1.end()->set_is_counted();
 							count_LR++;
@@ -292,27 +295,41 @@ char is_center_crossed(Point2d &a, Point2d &b, double middle) {
 		return 'N';
 }
 
+//@checks if the center is crossed
+//@returns N- no, L- right to left, R- left to right
+char is_center_crossed(Object &obj_a, Object &obj_b, double middle) {
+	Point2d a, b;
+	obj_a.get_center(a);
+	obj_b.get_center(b);
+	if( (a.x < middle) && (b.x >= middle) )
+		return 'R';
+	else if( (b.x < middle) && (a.x >= middle) )
+		return 'L';
+	else
+		return 'N';
+}
+
 //@interpret keyboard input
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause) {
 	switch(c){
-	case 1048603:
-	// case 27: //'esc' key has been pressed, exit program.
+	// case 1048603:
+	case 27: //'esc' key has been pressed, exit program.
 		cout << "Have a nice day! :)" << endl;
 		exit(0);
-	case 1048692:
-	// case 116: //'t' has been pressed. this will toggle tracking
+	// case 1048692:
+	case 116: //'t' has been pressed. this will toggle tracking
 		trackingEnabled = !trackingEnabled;
 		if(trackingEnabled == false) cout << "Tracking disabled." << endl;
 		else cout << "Tracking enabled." << endl;
 		break;
-	case 1048676:
-	// case 100: //'d' has been pressed. this will debug mode
+	// case 1048676:
+	case 100: //'d' has been pressed. this will debug mode
 		debugMode = !debugMode;
 		if(debugMode == false) cout << "Debug mode disabled." << endl;
 		else cout << "Debug mode enabled." << endl;
 		break;
-	case 1048688:
-	// case 112: //'p' has been pressed. this will pause/resume the code.
+	// case 1048688:
+	case 112: //'p' has been pressed. this will pause/resume the code.
 		pause = !pause;
 		if(pause == true){ 
 			cout << "Code paused, press 'p' again to resume" << endl;
@@ -320,8 +337,8 @@ void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause
 				//stay in this loop until 
 				switch (waitKey()){
 					//a switch statement inside a switch statement? Mind blown.
-				case 1048688:
-				// case 112: 
+				// case 1048688:
+				case 112: 
 					//change pause back to false
 					pause = false;
 					cout << "Code resumed." << endl;
