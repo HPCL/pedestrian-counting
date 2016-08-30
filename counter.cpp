@@ -51,10 +51,6 @@ static int SENSITIVITY_VALUE = 50; // original 20
 static int BLUR_SIZE = 200; // original 10
 static double MIN_OBJ_AREA = 1000;
 static double MAX_DIST_SQD = 1; // maximum distance between to centers to consider it one object
-//we'll have just one object to search for
-//and keep track of its position.
-int theObject[2] = {0,0};
-//Rect objectBoundingRectangle = Rect(0,0,0,0);
 
 void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat thresholdImage, Mat &cameraFeed, bool loop_switch);
@@ -74,6 +70,7 @@ int main(int argc, char** argv){
 	bool pause = false;
 	bool success, loop_switch;
 	double next_id = 0;
+	int count_LR = 0, count_RL = 0;
 
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
@@ -126,7 +123,7 @@ int main(int argc, char** argv){
 			compare_frames(grayImage1, grayImage2, debugMode, thresholdImage)
 
 			if(trackingEnabled) {
-				search_for_movement(thresholdImage, frame1, loop_switch, contours_0, contours_1);
+				search_for_movement( thresholdImage, frame1, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
 			}
 
 			imshow("Frame1",frame1);
@@ -147,7 +144,8 @@ int main(int argc, char** argv){
 	return 0;
 }
 
-void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, double &next_id
+void search_for_movement(Mat thresholdImage, Mat &display, 
+												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1){
 
 	int obj_count = 0, i = 0;
@@ -162,9 +160,10 @@ void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, dou
 
 	thresholdImage.copyTo(temp);
 	
+	//TODO clean this up so it makes sense. maybe make some functions
 	if(loop_switch){
 		findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-		if(contours_1.size() > 0){
+		if(contours.size() > 0){
 			for(vector< vector<Point> >::iterator it_0 = contours.begin(); it_0 != contours.end(); it_0++) {
 				temp_rect = boundingRect(*it_0);
 				obj_area = temp_rect.area();
@@ -182,33 +181,66 @@ void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, dou
 								prev_obj = it_1;
 							}
 						}
-					}
+					} //inner for
 					if(prev_obj == NULL) {
 						objects_0.end()->set_id(next_id++);
 					} else {
 						objects_0.end()->set_id(prev_obj->get_id());
-						//TODO check if center crossed and count
-					}
-
-				}
-			//TODO clear objects_1?
-			}
-		}
-
+						switch() {
+						case 'R':
+							objects_0.end()->set_is_counted();
+							count_LR++;
+							break;
+						case 'L':
+							objects_0.end()->set_is_counted();
+							count_RL++;
+							break;
+						} //switch
+					}//else
+				}//if obj_area >= MIN_OBJ_AREA
+			objects_1.clear();
+			}//outer for
+		} //if contour_1 > 0
 	} else {
-		//TODO copy and paste this whole thing from above (or maybe make it a func)
-		findContours(temp, contours_2, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-		if(contours_2.size() > 0){
-			i = contours_2.size()-1;
-			for(i; i >= 0; i--) {
-				temp_rect = boundingRect(contours_2.at(i));
+		findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+		if(contours.size() > 0){
+			for(vector< vector<Point> >::iterator it_0 = contours.begin(); it_0 != contours.end(); it_0++) {
+				temp_rect = boundingRect(*it_0);
 				obj_area = temp_rect.area();
 
 				if(obj_area >= MIN_OBJ_AREA){
 					obj_count++;
 					obj_rects.push_back(Rect2d(temp_rect));
+					objects_1.push_back(Point2d(*it_0);
+					prev_obj = NULL;
+					for(vector<Object>::iterator it_1 = objects_0.begin(); it_1 != objects_0.end(); it_1++) {
+						dist = it_1->find_distance_sqd(*(objects_1.end());
+						if(dist <= MAX_DIST_SQD) {
+							if( (min_dist == -1) || (dist < min_dist) ) {
+								min_dist = dist;
+								prev_obj = it_1;
+							}
+						}
+					}
+					if(prev_obj == NULL) {
+						objects_1.end()->set_id(next_id++);
+					} else {
+						objects_1.end()->set_id(prev_obj->get_id());
+						switch() {
+						case 'R':
+							objects_1.end()->set_is_counted();
+							count_LR++;
+							break;
+						case 'L':
+							objects_1.end()->set_is_counted();
+							count_RL++;
+							break;
+						}
+					}
+
 				}
-			} 
+			objects_0.clear();
+			}
 		}
 	}
 
