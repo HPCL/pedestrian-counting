@@ -58,6 +58,7 @@ int theObject[2] = {0,0};
 
 void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat thresholdImage, Mat &cameraFeed, bool loop_switch);
+char is_center_crossed(Point2d &a, Point2d &b, double middle);
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
 
@@ -72,6 +73,7 @@ int main(int argc, char** argv){
 	bool trackingEnabled = false;
 	bool pause = false;
 	bool success, loop_switch;
+	double next_id = 0;
 
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
@@ -145,11 +147,11 @@ int main(int argc, char** argv){
 	return 0;
 }
 
-void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, 
+void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch, double &next_id
 												vector<Object> &objects_0, vector<Object> &objects_1){
 
 	int obj_count = 0, i = 0;
-	int mid_row = thresholdImage.rows >> 1; // half way across the screen
+	double mid_row = (double)(thresholdImage.rows >> 1); // half way across the screen
 	double obj_area = 0, dist = -1, min_dist = -1;
 	vector< vector<Point> > contours;
 	Mat temp;
@@ -177,19 +179,17 @@ void search_for_movement(Mat thresholdImage, Mat &display, bool loop_switch,
 						if(dist <= MAX_DIST_SQD) {
 							if( (min_dist == -1) || (dist < min_dist) ) {
 								min_dist = dist;
-								min_id = it_1->get_id();
+								prev_obj = it_1;
 							}
 						}
 					}
 					if(prev_obj == NULL) {
-						//TODO update id
-						//TODO check if center crossed and count
+						objects_0.end()->set_id(next_id++);
 					} else {
-						
+						objects_0.end()->set_id(prev_obj->get_id());
+						//TODO check if center crossed and count
 					}
 
-				} else {
-					//TODO remove small contours (maybe not)
 				}
 			//TODO clear objects_1?
 			}
@@ -247,6 +247,17 @@ void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thres
 	else {
 		destroyWindow("Final Threshold Image");
 	}
+}
+
+//@checks if the center is crossed
+//@returns N- no, L- right to left, R- left to right
+char is_center_crossed(Point2d &a, Point2d &b, double middle) {
+	if( (a.x < middle) && (b.x >= middle) )
+		return 'R';
+	else if( (b.x < middle) && (a.x >= middle) )
+		return 'L';
+	else
+		return 'N';
 }
 
 //@interpret keyboard input
