@@ -50,7 +50,7 @@ static int SENSITIVITY_VALUE = 50; // original 20
 //increase the size of the object we are trying to track. (Much like dilate and erode)
 static int BLUR_SIZE = 200; // original 10
 static double MIN_OBJ_AREA = 1000;
-static double MAX_DIST_SQD = 1; // maximum distance between to centers to consider it one object
+static double MAX_DIST_SQD = 6000000; // maximum distance between to centers to consider it one object
 
 void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat thresholdImage, Mat &display, 
@@ -60,6 +60,7 @@ char is_center_crossed(Point2d &a, Point2d &b, double middle);
 char is_center_crossed(Object &obj_a, Object &obj_b, double middle);
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
+void draw_centers(vector<Object> &objects, Mat &display);
 
 int char_to_int(char* c);
 string int_to_str(int i);
@@ -88,18 +89,22 @@ int main(int argc, char** argv){
 	string vid_name = argv[1];
 	
 	if(argc > 2) 
-		SENSITIVITY_VALUE = char_to_int(argv[2]);
-	
-	if(argc > 3) 
-		BLUR_SIZE = char_to_int(argv[3]);
+		MAX_DIST_SQD = char_to_int(argv[2]);
 
+	if(argc > 3) 
+		SENSITIVITY_VALUE = char_to_int(argv[3]);
+	
 	if(argc > 4) 
-		MIN_OBJ_AREA = char_to_int(argv[4]);
+		BLUR_SIZE = char_to_int(argv[4]);
+
+	if(argc > 5) 
+		MIN_OBJ_AREA = char_to_int(argv[5]);
 
 	namedWindow("Frame1", CV_WINDOW_NORMAL);
 
 	while(1){
 
+		cout << "reopening video" << endl;
 		capture.open(vid_name);
 		if(!capture.isOpened()){
 			cout<<"ERROR ACQUIRING VIDEO FEED\n";
@@ -121,6 +126,7 @@ int main(int argc, char** argv){
 
 		loop_switch = true;
 		while( success ) {
+			cout << "new frame" << endl;
 
 			cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
 			compare_frames(grayImage1, grayImage2, debugMode, thresholdImage);
@@ -142,6 +148,8 @@ int main(int argc, char** argv){
 		
 		//release the capture before re-opening and looping again.
 		capture.release();
+		cout << "objects moving Left to Right: " << count_LR << endl;
+		cout << "objects moving Right to Left: " << count_RL << endl;
 	} // outer while loop (infinite)
 
 	return 0;
@@ -176,15 +184,17 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 					obj_rects.push_back(Rect2d(temp_rect));
 					objects_0.push_back(Object(*it_0));
 					prev_obj = NULL;
-					for(vector<Object>::iterator it_1 = objects_1.begin(); it_1 != objects_1.end(); it_1++) {
-						dist = it_1->find_distance_sqd(*objects_0.end());
-						if(dist <= MAX_DIST_SQD) {
-							if( (min_dist == -1) || (dist < min_dist) ) {
-								min_dist = dist;
-								prev_obj = &(*it_1);
+					if(objects_1.size() > 0) {
+						for(vector<Object>::iterator it_1 = objects_1.begin(); it_1 != objects_1.end(); it_1++) {
+							dist = it_1->find_distance_sqd(*objects_0.end());
+							if(dist <= MAX_DIST_SQD) {
+								if( (min_dist == -1) || (dist < min_dist) ) {
+									min_dist = dist;
+									prev_obj = &(*it_1);
+								}
 							}
-						}
-					} //inner for
+						} //inner for
+					}
 					if(prev_obj == NULL) {
 						objects_0.end()->set_id(next_id++);
 					} else {
@@ -193,14 +203,18 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 						case 'R':
 							objects_0.end()->set_is_counted();
 							count_LR++;
+							cout << "objects moving Left to Right: " << count_LR << endl;
 							break;
 						case 'L':
 							objects_0.end()->set_is_counted();
 							count_RL++;
+							cout << "objects moving Right to Left: " << count_RL << endl;
 							break;
 						} //switch
 					}//else
 				}//if obj_area >= MIN_OBJ_AREA
+			draw_centers(objects_0, display);
+			draw_centers(objects_1, display);
 			objects_1.clear();
 			}//outer for
 		} //if contour_1 > 0
@@ -216,12 +230,14 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 					obj_rects.push_back(Rect2d(temp_rect));
 					objects_1.push_back(Object(*it_0));
 					prev_obj = NULL;
-					for(vector<Object>::iterator it_1 = objects_0.begin(); it_1 != objects_0.end(); it_1++) {
-						dist = it_1->find_distance_sqd(*objects_1.end());
-						if(dist <= MAX_DIST_SQD) {
-							if( (min_dist == -1) || (dist < min_dist) ) {
-								min_dist = dist;
-								prev_obj = &(*it_1);
+					if(objects_0.size() > 0) {
+						for(vector<Object>::iterator it_1 = objects_0.begin(); it_1 != objects_0.end(); it_1++) {
+							dist = it_1->find_distance_sqd(*objects_1.end());
+							if(dist <= MAX_DIST_SQD) {
+								if( (min_dist == -1) || (dist < min_dist) ) {
+									min_dist = dist;
+									prev_obj = &(*it_1);
+								}
 							}
 						}
 					}
@@ -233,28 +249,33 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 						case 'R':
 							objects_1.end()->set_is_counted();
 							count_LR++;
+							cout << "objects moving Left to Right: " << count_LR << endl;
 							break;
 						case 'L':
 							objects_1.end()->set_is_counted();
 							count_RL++;
+							cout << "objects moving Right to Left: " << count_RL << endl;
 							break;
 						}
 					}
 
 				}
+			draw_centers(objects_0, display);
+			draw_centers(objects_1, display);
 			objects_0.clear();
 			}
 		}
 	}
 
 	draw_rectangles(obj_rects, display);
+	line(display, Point(mid_row, 0), Point(mid_row, display.cols), Scalar( 0, 255, 0 ), 2, 1);
 
 }
 
 //@compares two grayscale images using simple background sutraction
 //	also displays the stages if requested
 void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage) {
-	Mat differenceImage;
+	Mat differenceImage, blurImage;
 
 	absdiff(grayImage1, grayImage2, differenceImage);
 	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
@@ -271,8 +292,8 @@ void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thres
 		destroyWindow("Threshold Image");
 	}
 
-	blur(thresholdImage, thresholdImage, Size(BLUR_SIZE, BLUR_SIZE));
-	threshold(thresholdImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+	blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
+	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
 
 	if(debugMode){
 		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
@@ -353,8 +374,18 @@ void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display) {
 	for(unsigned j = 0; j < obj_rects.size(); j++) {
 	  rectangle( display, obj_rects[j], Scalar( 255, 0, 0 ), 2, 1 ); // draw rectangle around object
-	  int mid_x = obj_rects[j].x + (obj_rects[j].width / 2);
-	  int mid_y = obj_rects[j].y - (obj_rects[j].height / 2);
+	  // int mid_x = obj_rects[j].x + (obj_rects[j].width / 2);  // was this important?
+	  // int mid_y = obj_rects[j].y - (obj_rects[j].height / 2);
+	}
+}
+
+//@draws the rectagles
+void draw_centers(vector<Object> &objects, Mat &display) {
+	Point2d temp_pt;
+	for(unsigned j = 0; j < objects.size(); j++) {
+		objects[j].get_center(temp_pt);
+	  circle( display, temp_pt, 5, Scalar( 0, 0, 255 ), 2, 1 ); 
+	  // circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 0, 255 ), 2, 1 ); 
 	}
 }
 
@@ -384,10 +415,10 @@ string int_to_str(int i){
 
 void show_help() {
   cout << endl << 
-  " Usage: ./motionTracking_modified.out <video_name> [SENSITIVITY_VALUE] [BLUR_SIZE] [MIN_OBJ_AREA]\n"
+  " Usage: ./counter.out <video_name> [MAX_DIST_SQD] [SENSITIVITY_VALUE] [BLUR_SIZE] [MIN_OBJ_AREA]\n"
   " examples:\n"
-  " ./motionTracking_modified.out /home/pi/videos/my_vid.h264\n"
-  " ./motionTracking_modified.out /home/pi/videos/my_vid.h264 20 10 10\n"
+  " ./counter.out /home/pi/videos/my_vid.h264\n"
+  " ./counter.out /home/pi/videos/my_vid.h264 50 20 10 10\n"
   << endl << endl;
   exit(1); 
 }

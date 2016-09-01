@@ -9,6 +9,9 @@
 *.png
 *.h264
 
+# other
+*.dat
+
 # git script
 git_acp.bash
 
