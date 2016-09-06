@@ -13,4 +13,7 @@ counter: counter.cpp
 	  make object.o
 		$(CC) $(OCV_PATH) counter.cpp object.o -o counter.out $(ALL_LIBS)
 
+counter_gdb:
+	  $(CC) $(OCV_PATH) counter.cpp object.cpp -g -o counter.out $(ALL_LIBS) 
+
 
