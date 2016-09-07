@@ -53,11 +53,13 @@ static double MIN_OBJ_AREA = 1000;
 static double MAX_DIST_SQD = 6000000; // maximum distance between to centers to consider it one object
 
 void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
-void search_for_movement(Mat thresholdImage, Mat &display, 
+void search_for_movement(Mat &thresholdImage, Mat &display, 
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1);
-char is_center_crossed(Point2d &a, Point2d &b, double middle);
-char is_center_crossed(Object &obj_a, Object &obj_b, double middle);
+Object* find_previous_object(vector<Object> &old_objs, Object &curr_obj);
+void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &count_LR, int &count_RL);
+char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
+char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle);
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
 void draw_centers(vector<Object> &objects, Mat &display);
@@ -156,13 +158,13 @@ int main(int argc, char** argv){
 	return 0;
 }
 
-void search_for_movement(Mat thresholdImage, Mat &display, 
+void search_for_movement(Mat &thresholdImage, Mat &display, 
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1){
 
 	int obj_count = 0, i = 0;
 	double mid_row = (double)(thresholdImage.cols >> 1); // half way across the screen
-	double obj_area = 0, dist = -1, min_dist = -1;
+	double obj_area = 0;
 	vector< vector<Point> > contours;
 	Mat temp;
 	Rect2d temp_rect;
@@ -186,38 +188,14 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 					objects_0.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_1.size() > 0) {
-						min_dist = -1;
-						for(vector<Object>::iterator it_1 = objects_1.begin(); it_1 != objects_1.end(); it_1++) {
-							dist = it_1->find_distance_sqd(*objects_0.end());
-							if(dist <= MAX_DIST_SQD) {
-								if( (min_dist == -1) || (dist < min_dist) ) {
-									min_dist = dist;
-									prev_obj = &(*it_1);
-								}
-							}
-						} //inner for
+						prev_obj = find_previous_object(objects_1, *objects_0.end()); 
 					}
 					if(prev_obj == NULL) {
 						objects_0.end()->set_id(next_id++);
 						objects_0.end()->set_is_counted(false);
 					} else {
-						objects_0.end()->set_id(prev_obj->get_id());
-						objects_0.end()->set_is_counted(prev_obj->get_is_counted());
-						if( !(objects_0.end()->get_is_counted()) ) {
-							switch(is_center_crossed(*prev_obj, *objects_0.end(), mid_row)) {
-							case 'R':
-								objects_0.end()->set_is_counted();
-								count_LR++;
-								// cout << "objects moving Left to Right: " << count_LR << endl;
-								break;
-							case 'L':
-								objects_0.end()->set_is_counted();
-								count_RL++;
-								// cout << "objects moving Right to Left: " << count_RL << endl;
-								break;	
-							} //switch
-						}
-					}//else
+						update_object(*prev_obj, *objects_0.end(), mid_row, count_LR, count_RL);
+					}
 				}//if obj_area >= MIN_OBJ_AREA
 			draw_centers(objects_0, display);
 			draw_centers(objects_1, display);
@@ -237,39 +215,14 @@ void search_for_movement(Mat thresholdImage, Mat &display,
 					objects_1.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_0.size() > 0) {
-						min_dist = -1;
-						for(vector<Object>::iterator it_1 = objects_0.begin(); it_1 != objects_0.end(); it_1++) {
-							dist = it_1->find_distance_sqd(*objects_1.end());
-							if(dist <= MAX_DIST_SQD) {
-								if( (min_dist == -1) || (dist < min_dist) ) {
-									min_dist = dist;
-									prev_obj = &(*it_1);
-								}
-							}
-						}
+						prev_obj = find_previous_object(objects_0, *objects_1.end()); 
 					}
 					if(prev_obj == NULL) {
 						objects_1.end()->set_id(next_id++);
 						objects_1.end()->set_is_counted(false);
 					} else {
-						objects_1.end()->set_id(prev_obj->get_id());
-						objects_1.end()->set_is_counted(prev_obj->get_is_counted());
-						if( !(objects_1.end()->get_is_counted()) ) {
-							switch(is_center_crossed(*prev_obj, *objects_1.end(), mid_row)) {
-							case 'R':
-								objects_1.end()->set_is_counted();
-								count_LR++;
-								// cout << "objects moving Left to Right: " << count_LR << endl;
-								break;
-							case 'L':
-								objects_1.end()->set_is_counted();
-								count_RL++;
-								// cout << "objects moving Right to Left: " << count_RL << endl;
-								break;
-							}
-						}
+						update_object(*prev_obj, *objects_1.end(), mid_row, count_LR, count_RL);
 					}
-
 				}
 			draw_centers(objects_0, display);
 			draw_centers(objects_1, display);
@@ -316,9 +269,48 @@ void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thres
 	}
 }
 
+//@searches through list of old object to find match for the new one
+//@returns pointer to the old one
+Object* find_previous_object(vector<Object> &old_objs, Object &curr_obj) {
+	double dist, min_dist = -1;
+	Object *prev_obj = NULL;
+	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
+		dist = it_old_obj->find_distance_sqd(curr_obj);
+		if(dist <= MAX_DIST_SQD) {
+			if( (min_dist == -1) || (dist < min_dist) ) {
+				min_dist = dist;
+				prev_obj = &(*it_old_obj);
+			}
+		}
+	}
+	return prev_obj;
+}
+
+
+//@searches through list of old object to find match for the new one
+//@returns pointer to the old one
+void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &count_LR, int &count_RL) {
+	curr_obj.set_id(prev_obj.get_id());
+	curr_obj.set_is_counted(prev_obj.get_is_counted());
+	if( !(curr_obj.get_is_counted()) ) {
+		switch(is_center_crossed(prev_obj, curr_obj, mid_row)) {
+		case 'R':
+			curr_obj.set_is_counted();
+			count_LR++;
+			// cout << "objects moving Left to Right: " << count_LR << endl;
+			break;
+		case 'L':
+			curr_obj.set_is_counted();
+			count_RL++;
+			// cout << "objects moving Right to Left: " << count_RL << endl;
+			break;	
+		} //switch
+	} //if counted
+}
+
 //@checks if the center is crossed
 //@returns N- no, L- right to left, R- left to right
-char is_center_crossed(Point2d &a, Point2d &b, double middle) {
+char is_center_crossed(const Point2d &a, const Point2d &b, double middle) {
 	if( (a.x < middle) && (b.x >= middle) )
 		return 'R';
 	else if( (b.x < middle) && (a.x >= middle) )
@@ -329,7 +321,7 @@ char is_center_crossed(Point2d &a, Point2d &b, double middle) {
 
 //@checks if the center is crossed
 //@returns N- no, L- right to left, R- left to right
-char is_center_crossed(Object &obj_a, Object &obj_b, double middle) {
+char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle) {
 	Point2d a, b;
 	obj_a.get_center(a);
 	obj_b.get_center(b);
