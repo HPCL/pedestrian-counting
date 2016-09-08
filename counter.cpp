@@ -188,13 +188,13 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_0.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_1.size() > 0) {
-						prev_obj = find_previous_object(objects_1, *objects_0.end()); 
+						prev_obj = find_previous_object(objects_1, *objects_0.rbegin()); 
 					}
 					if(prev_obj == NULL) {
-						objects_0.end()->set_id(next_id++);
-						objects_0.end()->set_is_counted(false);
+						objects_0.rbegin()->set_id(next_id++);
+						objects_0.rbegin()->set_is_counted(false);
 					} else {
-						update_object(*prev_obj, *objects_0.end(), mid_row, count_LR, count_RL);
+						update_object(*prev_obj, *objects_0.rbegin(), mid_row, count_LR, count_RL);
 					}
 				}//if obj_area >= MIN_OBJ_AREA
 			draw_centers(objects_0, display);
@@ -215,13 +215,13 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_1.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_0.size() > 0) {
-						prev_obj = find_previous_object(objects_0, *objects_1.end()); 
+						prev_obj = find_previous_object(objects_0, *objects_1.rbegin()); 
 					}
 					if(prev_obj == NULL) {
-						objects_1.end()->set_id(next_id++);
-						objects_1.end()->set_is_counted(false);
+						objects_1.rbegin()->set_id(next_id++);
+						objects_1.rbegin()->set_is_counted(false);
 					} else {
-						update_object(*prev_obj, *objects_1.end(), mid_row, count_LR, count_RL);
+						update_object(*prev_obj, *objects_1.rbegin(), mid_row, count_LR, count_RL);
 					}
 				}
 			draw_centers(objects_0, display);
