@@ -53,6 +53,7 @@ static double MIN_OBJ_AREA = 1000;
 static double MAX_DIST_SQD = 6000000; // maximum distance between to centers to consider it one object
 
 void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
+void static_background_subtraction(Mat &newImage, Mat &backImage, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat &thresholdImage, Mat &display, 
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1);
