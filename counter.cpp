@@ -97,6 +97,7 @@ int main(int argc, char** argv){
 		use_static_back = false;
 	} else {
 		grayBackground = imread(back_name);
+		cvtColor(grayBackground, grayBackground, COLOR_BGR2GRAY);
 		if(grayBackground.empty()) {
 			cout << "ERROR: Could not read background image" << endl;
 			exit(1);

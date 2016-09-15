@@ -1,5 +1,5 @@
-/* get_background.cpp
- * a program to average a video to produce the background for ped counting
+/* useful_functions.cpp
+ * various functions that are useful to the project but don't belong anywhere in particular
  
  * Brian J Gravelle
  * ix.cs.uoregon.edu/~gravelle
@@ -29,39 +29,21 @@
 
  */
 
+#ifndef USEFUL_FUNCTIONS_H
+#define USEFUL_FUNCTIONS_H
+
 #include <opencv/cv.hpp>
 //#include <opencv/highgui.h>
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
-#include "useful_functions.h"
 
 using namespace std;
 using namespace cv;
 
-void show_help();
+int char_to_int(char* c);
+string int_to_str(int i);
+void display_window(string name, Mat& img, bool wait = false);
+void get_background(string vid_name, Mat& avg_frame);
 
-int main(int argc, char** argv){
-
-	Mat avg_frame;
-
-  if(argc < 3) 
-	  show_help();
-
-	string vid_name = argv[1];
-	string img_name = argv[2];
-
-	get_background(vid_name, avg_frame);
-	imwrite(img_name, avg_frame);
-
-	return 0;
-}
-
-void show_help() {
-  cout << endl << 
-  " Usage: ./get_background.out <input videoname> <output image name>\n"
-  " examples:\n"
-  " ./get_background.out /home/pi/videos/my_vid.h264 my_background.jpg\n"
-  << endl << endl;
-  exit(1); 
-}
+#endif

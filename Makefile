@@ -9,13 +9,18 @@ VID_PATH  = /home/pi/test_videos
 object.o: object.cpp object.h
 		$(CC) $(OCV_PATH) -c object.cpp $(BASE_LIBS)
 
+useful_functions.o: useful_functions.cpp useful_functions.h
+		$(CC) $(OCV_PATH) -c useful_functions.cpp $(BASE_LIBS)
+
 counter: counter.cpp
+		make useful_functions.o
 	  make object.o
-		$(CC) $(OCV_PATH) counter.cpp object.o -o counter.out $(ALL_LIBS)
+		$(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o -o counter.out $(ALL_LIBS)
 
 counter_gdb:
-	  $(CC) $(OCV_PATH) counter.cpp object.cpp -g -o counter.out $(ALL_LIBS) 
+	  $(CC) $(OCV_PATH) counter.cpp object.cpp useful_functions.cpp -g -o counter.out $(ALL_LIBS) 
 
 get_background: get_background.cpp
-		$(CC) $(OCV_PATH) get_background.cpp -o get_background.out $(ALL_LIBS)
+		make useful_functions.o
+		$(CC) $(OCV_PATH) get_background.cpp useful_functions.cpp -o get_background.out $(ALL_LIBS)
 
