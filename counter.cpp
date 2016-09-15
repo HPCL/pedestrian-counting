@@ -75,33 +75,45 @@ int main(int argc, char** argv){
 	bool debugMode = false;
 	bool trackingEnabled = false;
 	bool pause = false;
+	bool use_static_back = true;
 	bool success, loop_switch;
 	double next_id = 0;
 	int count_LR = 0, count_RL = 0;
 
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
+	Mat grayBackground;
 	vector<Object> objects_0, objects_1;
 	Mat thresholdImage;
 	
 	VideoCapture capture;
 
-  if(argc < 2) 
+  if(argc < 3) 
 	  show_help();
 
-	string vid_name = argv[1];
+	string vid_name  = argv[1];
+	string back_name = argv[2];
+	if (back_name.compare("NONE") == 0) { 
+		use_static_back = false;
+	} else {
+		grayBackground = imread(back_name);
+		if(grayBackground.empty()) {
+			cout << "ERROR: Could not read background image" << endl;
+			exit(1);
+		}
+	}
 	
-	if(argc > 2) 
-		MAX_DIST_SQD = char_to_int(argv[2]);
-
 	if(argc > 3) 
-		SENSITIVITY_VALUE = char_to_int(argv[3]);
-	
-	if(argc > 4) 
-		BLUR_SIZE = char_to_int(argv[4]);
+		MAX_DIST_SQD = char_to_int(argv[3]);
 
+	if(argc > 4) 
+		SENSITIVITY_VALUE = char_to_int(argv[4]);
+	
 	if(argc > 5) 
-		MIN_OBJ_AREA = char_to_int(argv[5]);
+		BLUR_SIZE = char_to_int(argv[5]);
+
+	if(argc > 6) 
+		MIN_OBJ_AREA = char_to_int(argv[6]);
 
 	namedWindow("Frame1", CV_WINDOW_NORMAL);
 
@@ -132,19 +144,24 @@ int main(int argc, char** argv){
 			// cout << "new frame" << endl;
 
 			cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
-			compare_frames(grayImage1, grayImage2, debugMode, thresholdImage);
+			if(use_static_back)
+				compare_frames(grayBackground, grayImage2, debugMode, thresholdImage);
+			else
+				compare_frames(grayImage1, grayImage2, debugMode, thresholdImage);
 
 			if(trackingEnabled) {
-				search_for_movement( thresholdImage, frame1, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
+				search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
 			}
 
-			imshow("Frame1",frame1);
+			imshow("Frame1",frame2);
 			resizeWindow("Frame1", 512, 384);
 
 			interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
 
-			frame2.copyTo(frame1);
-			cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
+			if(!use_static_back) {
+				frame2.copyTo(frame1);
+				cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
+			}
 			success = capture.read(frame2);
 			loop_switch = !loop_switch;
 		} // inner while loop
@@ -418,10 +435,11 @@ string int_to_str(int i){
 
 void show_help() {
   cout << endl << 
-  " Usage: ./counter.out <video_name> [MAX_DIST_SQD] [SENSITIVITY_VALUE] [BLUR_SIZE] [MIN_OBJ_AREA]\n"
+  " Usage: ./counter.out <video_name> <gray background image> [MAX_DIST_SQD] [SENSITIVITY_VALUE] [BLUR_SIZE] [MIN_OBJ_AREA]\n"
   " examples:\n"
-  " ./counter.out /home/pi/videos/my_vid.h264\n"
-  " ./counter.out /home/pi/videos/my_vid.h264 50 20 10 10\n"
+  " ./counter.out NONE /home/pi/test_videos/my_vid.h264\n"
+  " ./counter.out /home/pi/test_videos/my_vid.h264 /home/pi/test_videos/my_background.jpg \n"
+  " ./counter.out /home/pi/test_videos/my_vid.h264 NONE 50 20 10 10\n"
   << endl << endl;
   exit(1); 
 }
