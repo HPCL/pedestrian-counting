@@ -1,6 +1,7 @@
-# executables
+# executables and binaries
 *.exe
 *.out
+*.o
 
 # movies and pics
 *.avi
