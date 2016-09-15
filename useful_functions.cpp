@@ -121,7 +121,7 @@ void get_background(string vid_name, Mat& avg_frame) {
 	avg_frame = avg_frame / frame_count;
 	cout << "done processing." << endl;
 	
-	// avg_frame.convertTo(avg_frame, CV_16U);
+	avg_frame.convertTo(avg_frame, CV_8UC1);
 	//display_window("Average", avg_frame, true);
 	//release the capture before re-opening and looping again.
 	capture.release();

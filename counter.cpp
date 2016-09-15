@@ -40,6 +40,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include "object.h"
+#include "useful_functions.h"
 
 using namespace std;
 using namespace cv;
@@ -52,6 +53,8 @@ static int BLUR_SIZE = 200; // original 10
 static double MIN_OBJ_AREA = 1000;
 static double MAX_DIST_SQD = 6000000; // maximum distance between to centers to consider it one object
 
+
+void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back);
 void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 void static_background_subtraction(Mat &newImage, Mat &backImage, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat &thresholdImage, Mat &display, 
@@ -65,8 +68,6 @@ void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
 void draw_centers(vector<Object> &objects, Mat &display);
 
-int char_to_int(char* c);
-string int_to_str(int i);
 void show_help();
 
 
@@ -76,6 +77,7 @@ int main(int argc, char** argv){
 	bool trackingEnabled = false;
 	bool pause = false;
 	bool use_static_back = true;
+	bool background_is_video = true;
 	bool success, loop_switch;
 	double next_id = 0;
 	int count_LR = 0, count_RL = 0;
@@ -93,17 +95,7 @@ int main(int argc, char** argv){
 
 	string vid_name  = argv[1];
 	string back_name = argv[2];
-	if (back_name.compare("NONE") == 0) { 
-		use_static_back = false;
-	} else {
-		grayBackground = imread(back_name);
-		cvtColor(grayBackground, grayBackground, COLOR_BGR2GRAY);
-		if(grayBackground.empty()) {
-			cout << "ERROR: Could not read background image" << endl;
-			exit(1);
-		}
-	}
-	
+
 	if(argc > 3) 
 		MAX_DIST_SQD = char_to_int(argv[3]);
 
@@ -115,6 +107,8 @@ int main(int argc, char** argv){
 
 	if(argc > 6) 
 		MIN_OBJ_AREA = char_to_int(argv[6]);
+
+	set_background(back_name, background_is_video, grayBackground, use_static_back);
 
 	namedWindow("Frame1", CV_WINDOW_NORMAL);
 
@@ -175,6 +169,22 @@ int main(int argc, char** argv){
 	} // outer while loop (infinite)
 
 	return 0;
+} //main
+
+//@sets background image for static background subtraction based on input file
+void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back) {
+	if (back_name.compare("NONE") == 0)
+		use_static_back = false;
+	else if (background_is_video)
+		get_background(back_name, grayBackground);
+	else
+		grayBackground = imread(back_name);
+	
+	//cvtColor(grayBackground, grayBackground, COLOR_BGR2GRAY);
+	if(grayBackground.empty()) {
+		cout << "ERROR: Could not read background image" << endl;
+		exit(1);
+	}
 }
 
 void search_for_movement(Mat &thresholdImage, Mat &display, 
@@ -253,7 +263,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 	draw_rectangles(obj_rects, display);
 	line(display, Point(mid_row, 0), Point(mid_row, display.cols), Scalar( 0, 255, 0 ), 2, 1);
 
-}
+} //search for movement
 
 //@compares two grayscale images using simple background sutraction
 //	also displays the stages if requested
@@ -409,29 +419,6 @@ void draw_centers(vector<Object> &objects, Mat &display) {
 	  circle( display, temp_pt, 5, Scalar( 0, 0, 255 ), 2, 1 ); 
 	  // circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 0, 255 ), 2, 1 ); 
 	}
-}
-
-/******************************* utilities ********************************/
-int char_to_int(char* c) {
-	int i = 0; 
-	int ret = 0;
-	int mult = 1;
-
-	while(c[i] !='\0')
-		i++;
-	i--;
-
-	for (i; i >= 0; i--) {
-		ret += mult * ((int)c[i] - (int)48);
-		mult *= 10;
-	}
-	return ret;
-}
-
-string int_to_str(int i){
-	stringstream ss;
-	ss << i;
-	return ss.str();
 }
 
 void show_help() {
