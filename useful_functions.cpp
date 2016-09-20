@@ -51,6 +51,10 @@ int char_to_int(char* c) {
 	return ret;
 }
 
+int str_to_int(string s) {
+	return atoi(s.c_str());
+}
+
 string int_to_str(int i){
 	stringstream ss;
 	ss << i;

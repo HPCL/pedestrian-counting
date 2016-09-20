@@ -1,0 +1,21 @@
+# settings for ped counter
+# order and format:
+# one line per item, for comments start line with '#'
+# do not use blank lines
+#
+# video name or (soon) CAMERA
+# background file name or NONE
+# MAX_DIST_SQD
+# SENSITIVITY_VALUE
+# BLUR_SIZE
+# MIN_OBJ_AREA
+#
+# examle (not recommeded settings):
+/home/pi/test_videos/three_single_LR.h264
+NONE
+50
+20
+# comments can go here too!
+10
+10
+

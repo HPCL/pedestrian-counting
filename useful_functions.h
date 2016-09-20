@@ -42,6 +42,7 @@ using namespace std;
 using namespace cv;
 
 int char_to_int(char* c);
+int str_to_int(string s);
 string int_to_str(int i);
 void display_window(string name, Mat& img, bool wait = false);
 void get_background(string vid_name, Mat& avg_frame);

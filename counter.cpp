@@ -38,6 +38,7 @@
 //#include <opencv/highgui.h>
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
 #include <stdlib.h>
 #include "object.h"
 #include "useful_functions.h"
@@ -46,16 +47,15 @@ using namespace std;
 using namespace cv;
 
 //our sensitivity value to be used in the threshold() function
+static double MAX_DIST_SQD = 6000000; // maximum distance between to centers to consider it one object
 static int SENSITIVITY_VALUE = 50; // original 20
 //size of blur used to smooth the image to remove possible noise and
 //increase the size of the object we are trying to track. (Much like dilate and erode)
 static int BLUR_SIZE = 200; // original 10
 static double MIN_OBJ_AREA = 1000;
-static double MAX_DIST_SQD = 6000000; // maximum distance between to centers to consider it one object
-
 
 void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back);
-void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
+void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 void static_background_subtraction(Mat &newImage, Mat &backImage, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat &thresholdImage, Mat &display, 
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
@@ -64,6 +64,9 @@ Object* find_previous_object(vector<Object> &old_objs, Object &curr_obj);
 void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &count_LR, int &count_RL);
 char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
 char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle);
+
+void get_setttings_inline(int argc, char** argv, string& vid_name, string& back_name);
+void get_setttings_file(int argc, char** argv, string& vid_name, string& back_name);
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
 void draw_centers(vector<Object> &objects, Mat &display);
@@ -76,7 +79,7 @@ int main(int argc, char** argv){
 	bool debugMode = false;
 	bool trackingEnabled = false;
 	bool pause = false;
-	bool use_static_back = true;
+	bool use_static_back = false;
 	bool background_is_video = true;
 	bool success, loop_switch;
 	double next_id = 0;
@@ -87,27 +90,18 @@ int main(int argc, char** argv){
 	Mat grayBackground;
 	vector<Object> objects_0, objects_1;
 	Mat thresholdImage;
-	
 	VideoCapture capture;
+	string vid_name;
+	string back_name;
 
-  if(argc < 3) 
-	  show_help();
-
-	string vid_name  = argv[1];
-	string back_name = argv[2];
-
-	if(argc > 3) 
-		MAX_DIST_SQD = char_to_int(argv[3]);
-
-	if(argc > 4) 
-		SENSITIVITY_VALUE = char_to_int(argv[4]);
+	if(argc == 2) {
+		get_setttings_file(argc, argv, vid_name, back_name);
+	} else if( (argc >= 3) && (argc < 8) ) {
+		get_setttings_inline(argc, argv, vid_name, back_name);
+	} else {
+		show_help();
+	}
 	
-	if(argc > 5) 
-		BLUR_SIZE = char_to_int(argv[5]);
-
-	if(argc > 6) 
-		MIN_OBJ_AREA = char_to_int(argv[6]);
-
 	set_background(back_name, background_is_video, grayBackground, use_static_back);
 
 	namedWindow("Frame1", CV_WINDOW_NORMAL);
@@ -140,9 +134,9 @@ int main(int argc, char** argv){
 
 			cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
 			if(use_static_back)
-				compare_frames(grayBackground, grayImage2, debugMode, thresholdImage);
+				do_non_adaptive_BS(grayBackground, grayImage2, debugMode, thresholdImage);
 			else
-				compare_frames(grayImage1, grayImage2, debugMode, thresholdImage);
+				do_non_adaptive_BS(grayImage1, grayImage2, debugMode, thresholdImage);
 
 			if(trackingEnabled) {
 				search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
@@ -181,7 +175,7 @@ void set_background(string back_name, bool background_is_video, Mat& grayBackgro
 		grayBackground = imread(back_name);
 	
 	//cvtColor(grayBackground, grayBackground, COLOR_BGR2GRAY);
-	if(grayBackground.empty()) {
+	if(use_static_back && grayBackground.empty()) {
 		cout << "ERROR: Could not read background image" << endl;
 		exit(1);
 	}
@@ -267,7 +261,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 
 //@compares two grayscale images using simple background sutraction
 //	also displays the stages if requested
-void compare_frames(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage) {
+void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage) {
 	Mat differenceImage, blurImage;
 
 	absdiff(grayImage1, grayImage2, differenceImage);
@@ -362,7 +356,78 @@ char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle) 
 		return 'N';
 }
 
-//@interpret keyboard input
+
+
+/*****************************************************************************\
+
+																IO FUNCTIONS
+
+
+\*****************************************************************************/
+
+
+void get_setttings_inline(int argc, char** argv, string& vid_name, string& back_name) {
+	vid_name  = argv[1];
+	back_name = argv[2];
+
+	if(argc > 3) 
+		MAX_DIST_SQD = char_to_int(argv[3]);
+
+	if(argc > 4) 
+		SENSITIVITY_VALUE = char_to_int(argv[4]);
+	
+	if(argc > 5) 
+		BLUR_SIZE = char_to_int(argv[5]);
+
+	if(argc > 6) 
+		MIN_OBJ_AREA = char_to_int(argv[6]);
+
+	if(argc > 7)
+		show_help();
+}
+
+void get_setttings_file(int argc, char** argv, string& vid_name, string& back_name) {
+	string next_line;
+	int input_cnt = 0;
+	bool done = false;
+	ifstream file;
+	file.open(argv[1]);
+
+	if (file.is_open()) {
+		while ( getline(file, next_line) && !done ) {
+			if(next_line[0] != '#') {
+				switch (input_cnt) {
+					case 0: 
+						vid_name = next_line.c_str();
+						break;
+					case 1: 
+						back_name = next_line.c_str();
+						break;
+					case 2: 
+						MAX_DIST_SQD = str_to_int(next_line);
+						break;
+					case 3: 
+						SENSITIVITY_VALUE = str_to_int(next_line);
+						break;
+					case 4: 
+						BLUR_SIZE = str_to_int(next_line);
+						break;
+					case 5: 
+						MIN_OBJ_AREA = str_to_int(next_line);
+						break;
+				} //switch
+				input_cnt++;
+			} // if not comment
+		} //while
+		file.close();
+	} else {
+		cout << "ERROR: Could nt open configuration file." << endl;
+		exit(1);
+	}
+
+}
+
+//@interpret keyboard input for runtime options
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause) {
 	switch(c){
 	// case 1048603:
@@ -421,13 +486,20 @@ void draw_centers(vector<Object> &objects, Mat &display) {
 	}
 }
 
+//@print instructions to standard output and crash program
 void show_help() {
   cout << endl << 
   " Usage: ./counter.out <video_name> <gray background image> [MAX_DIST_SQD] [SENSITIVITY_VALUE] [BLUR_SIZE] [MIN_OBJ_AREA]\n"
   " examples:\n"
-  " ./counter.out NONE /home/pi/test_videos/my_vid.h264\n"
+  " ./counter.out /home/pi/test_videos/my_vid.h264 NONE\n"
   " ./counter.out /home/pi/test_videos/my_vid.h264 /home/pi/test_videos/my_background.jpg \n"
   " ./counter.out /home/pi/test_videos/my_vid.h264 NONE 50 20 10 10\n"
+  "\n"
+  "OR \n"
+  "\n"
+  " Usage: ./counter.out <configuration file>\n"
+  " example:\n"
+  " ./counter.out config_example.txt\n"
   << endl << endl;
   exit(1); 
 }
