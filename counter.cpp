@@ -66,8 +66,8 @@ void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &coun
 char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
 char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle);
 
-void get_setttings_inline(int argc, char** argv, string& vid_name, string& back_name);
-void get_setttings_file(int argc, char** argv, string& vid_name, string& back_name);
+void get_settings_inline(int argc, char** argv, string& vid_name, string& back_name);
+void get_settings_file(int argc, char** argv, string& vid_name, string& back_name);
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
 void draw_centers(vector<Object> &objects, Mat &display);
@@ -95,9 +95,9 @@ int main(int argc, char** argv){
 	string back_name;
 
 	if(argc == 2) {
-		get_setttings_file(argc, argv, vid_name, back_name);
+		get_settings_file(argc, argv, vid_name, back_name);
 	} else if( (argc >= 3) && (argc < 8) ) {
-		get_setttings_inline(argc, argv, vid_name, back_name);
+		get_settings_inline(argc, argv, vid_name, back_name);
 	} else {
 		show_help();
 	}
@@ -368,7 +368,7 @@ char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle) 
 \*****************************************************************************/
 
 
-void get_setttings_inline(int argc, char** argv, string& vid_name, string& back_name) {
+void get_settings_inline(int argc, char** argv, string& vid_name, string& back_name) {
 	vid_name  = argv[1];
 	back_name = argv[2];
 
@@ -388,7 +388,7 @@ void get_setttings_inline(int argc, char** argv, string& vid_name, string& back_
 		show_help();
 }
 
-void get_setttings_file(int argc, char** argv, string& vid_name, string& back_name) {
+void get_settings_file(int argc, char** argv, string& vid_name, string& back_name) {
 	string next_line;
 	int input_cnt = 0;
 	bool done = false;
