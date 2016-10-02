@@ -102,7 +102,11 @@ int main(int argc, char** argv){
 		show_help();
 	}
 
-	ImageInput capture(vid_name);
+	if(vid_name == "RASPICAM") {
+		ImageInput capture();
+	} else {
+		ImageInput capture(vid_name);
+	}
 
 	set_background(back_name, background_is_video, grayBackground, use_static_back);
 

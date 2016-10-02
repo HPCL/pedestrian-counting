@@ -20,22 +20,26 @@ ImageInput::~ImageInput() {}
 
 bool ImageInput::open(){
   if (isLive){
+    return rasp_cam.open();
   } else {
-    capture.open(vid_name);
-    return capture.isOpened();
+    vid_capture.open(vid_name);
+    return vid_capture.isOpened();
   }
 }
 
 bool ImageInput::read(Mat& frame) {
   if(isLive) {
+    rasp_cam.grab();
+    rasp_cam.retrieve(frame);
   } else {
-    return capture.read(frame);
+    return vid_capture.read(frame);
   }
 }
 
 void ImageInput::release() {
   if (isLive) {
+    rasp_cam.release();
   } else {
-    capture.release();
+    vid_capture.release();
   }
 }

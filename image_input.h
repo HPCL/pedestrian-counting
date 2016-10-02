@@ -5,7 +5,7 @@
 #ifndef IMAGE_INPUT_H
 #define IMAGE_INPUT_H
 
-#include <raspicam/raspicam.h>
+#include <raspicam/raspicam_cv.h>
 #include <opencv/cv.hpp>
 
 using namespace cv;
@@ -15,7 +15,7 @@ class ImageInput {
 public:
   ImageInput();
   // Constructor for live feed
-  ImageInput(cv::String vid_name);
+  ImageInput(String vid_name);
   // Constructor for video from file
   ~ImageInput();
   // Generic destructor
@@ -26,9 +26,10 @@ public:
   void release();
   // Release input
 private:
-  bool         isLive;    // whether to use a live stream or video file
-  string       vid_name;  // filepath of video, if capturing from file
-  VideoCapture capture;   // oject to read video from file
+  bool         isLive;            // whether to use a live stream or video file
+  string       vid_name;          // filepath of video, if capturing from file
+  VideoCapture vid_capture;       // object to read video from file
+  raspicam::RaspiCam_Cv rasp_cam; // object to get images from raspberry pi's camera
 };
 
  #endif
