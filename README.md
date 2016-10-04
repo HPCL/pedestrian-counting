@@ -3,7 +3,7 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
 
 ## TODO
   * add adaptive background subtraction (GMM type)
-  * add live stream option
+  * test live stream option
   * get better test videos
 
 ## counter.cpp
@@ -12,6 +12,10 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
 ## object.h and .cpp
   * object class
   * essentially a center point that id's an object being tracked
+
+## image_input.h and .cpp
+  * image input class
+  * wraps the raspicamera and video file options up so that the other programs don't care
 
 ## get_background.cpp
   * simple program to average a video and find background

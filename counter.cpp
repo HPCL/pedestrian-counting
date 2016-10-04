@@ -38,7 +38,8 @@
  */
 
 #include <opencv/cv.hpp>
-#include "opencv/background_segm.hpp"
+#include "opencv2/core.hpp"
+// #include "opencv2/background_segm.hpp"
 //#include <opencv/highgui.h>
 #include <stdio.h>
 #include <iostream>

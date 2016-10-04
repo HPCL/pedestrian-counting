@@ -1,6 +1,6 @@
 CC = g++
 
-#TODO figure out which I need
+#TODO figure out which I actually need
 BASE_LIBS = -lopencv_imgproc -lopencv_highgui -lopencv_objdetect -lopencv_core -lopencv_videoio -lopencv_imgcodecs
 ALL_LIBS  = -lopencv_imgproc -lopencv_highgui -lopencv_objdetect -lopencv_core -lopencv_videoio -lopencv_imgcodecs
 OCV_PATH  = -I/usr/include/
@@ -12,13 +12,17 @@ object.o: object.cpp object.h
 useful_functions.o: useful_functions.cpp useful_functions.h
 		$(CC) $(OCV_PATH) -c useful_functions.cpp $(BASE_LIBS)
 
+image_input.o: image_input.cpp image_input.h
+		$(CC) $(OCV_PATH) -c image_input.cpp $(BASE_LIBS)
+
 counter: counter.cpp
 		make useful_functions.o
+		make image_input.o
 	  make object.o
-		$(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o -o counter.out $(ALL_LIBS)
+		$(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o -o counter.out $(ALL_LIBS)
 
 counter_gdb:
-	  $(CC) $(OCV_PATH) counter.cpp object.cpp useful_functions.cpp -g -o counter.out $(ALL_LIBS) 
+	  $(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o -g -o counter.out $(ALL_LIBS) 
 
 get_background: get_background.cpp
 		make useful_functions.o
