@@ -1,7 +1,7 @@
 /* count_things.cpp
  * a program to count pedestrians and bikers moving through a video
  * hopefully a live stream too
- 
+
  * Brian J Gravelle
  * ix.cs.uoregon.edu/~gravelle
  * gravelle@cs.uoregon.edu
@@ -14,7 +14,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
 
@@ -24,7 +24,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include "object.h"
 #include "useful_functions.h"
+#include "image_input.h"
 
 using namespace std;
 using namespace cv;
@@ -57,7 +58,7 @@ static double MIN_OBJ_AREA = 1000;
 void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back);
 void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 void static_background_subtraction(Mat &newImage, Mat &backImage, bool debugMode, Mat &thresholdImage);
-void search_for_movement(Mat &thresholdImage, Mat &display, 
+void search_for_movement(Mat &thresholdImage, Mat &display,
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1);
 Object* find_previous_object(vector<Object> &old_objs, Object &curr_obj);
@@ -65,8 +66,8 @@ void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &coun
 char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
 char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle);
 
-void get_setttings_inline(int argc, char** argv, string& vid_name, string& back_name);
-void get_setttings_file(int argc, char** argv, string& vid_name, string& back_name);
+void get_settings_inline(int argc, char** argv, string& vid_name, string& back_name);
+void get_settings_file(int argc, char** argv, string& vid_name, string& back_name);
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
 void draw_centers(vector<Object> &objects, Mat &display);
@@ -90,18 +91,23 @@ int main(int argc, char** argv){
 	Mat grayBackground;
 	vector<Object> objects_0, objects_1;
 	Mat thresholdImage;
-	VideoCapture capture;
 	string vid_name;
 	string back_name;
 
 	if(argc == 2) {
-		get_setttings_file(argc, argv, vid_name, back_name);
+		get_settings_file(argc, argv, vid_name, back_name);
 	} else if( (argc >= 3) && (argc < 8) ) {
-		get_setttings_inline(argc, argv, vid_name, back_name);
+		get_settings_inline(argc, argv, vid_name, back_name);
 	} else {
 		show_help();
 	}
-	
+
+	if(vid_name == "RASPICAM") {
+		ImageInput capture();
+	} else {
+		ImageInput capture(vid_name);
+	}
+
 	set_background(back_name, background_is_video, grayBackground, use_static_back);
 
 	namedWindow("Frame1", CV_WINDOW_NORMAL);
@@ -109,8 +115,8 @@ int main(int argc, char** argv){
 	while(1){
 
 		cout << "reopening video" << endl;
-		capture.open(vid_name);
-		if(!capture.isOpened()){
+		success = capture.open();
+		if(!success){
 			cout<<"ERROR ACQUIRING VIDEO FEED\n";
 			getchar();
 			return -1;
@@ -139,7 +145,7 @@ int main(int argc, char** argv){
 				do_non_adaptive_BS(grayImage1, grayImage2, debugMode, thresholdImage);
 
 			if(trackingEnabled) {
-				search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
+				search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1);
 			}
 
 			imshow("Frame1",frame2);
@@ -154,7 +160,7 @@ int main(int argc, char** argv){
 			success = capture.read(frame2);
 			loop_switch = !loop_switch;
 		} // inner while loop
-		
+
 		//release the capture before re-opening and looping again.
 		capture.release();
 		cout << "Next id for object (total id'd): " << next_id << endl;
@@ -173,7 +179,7 @@ void set_background(string back_name, bool background_is_video, Mat& grayBackgro
 		get_background(back_name, grayBackground);
 	else
 		grayBackground = imread(back_name);
-	
+
 	//cvtColor(grayBackground, grayBackground, COLOR_BGR2GRAY);
 	if(use_static_back && grayBackground.empty()) {
 		cout << "ERROR: Could not read background image" << endl;
@@ -181,7 +187,7 @@ void set_background(string back_name, bool background_is_video, Mat& grayBackgro
 	}
 }
 
-void search_for_movement(Mat &thresholdImage, Mat &display, 
+void search_for_movement(Mat &thresholdImage, Mat &display,
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1){
 
@@ -196,7 +202,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 	Object *prev_obj = NULL;
 
 	thresholdImage.copyTo(temp);
-	 
+
 	//TODO clean this up so it makes sense. maybe make some functions
 	if(loop_switch){
 		findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
@@ -211,7 +217,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_0.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_1.size() > 0) {
-						prev_obj = find_previous_object(objects_1, *objects_0.rbegin()); 
+						prev_obj = find_previous_object(objects_1, *objects_0.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_0.rbegin()->set_id(next_id++);
@@ -238,7 +244,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_1.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_0.size() > 0) {
-						prev_obj = find_previous_object(objects_0, *objects_1.rbegin()); 
+						prev_obj = find_previous_object(objects_0, *objects_1.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_1.rbegin()->set_id(next_id++);
@@ -326,7 +332,7 @@ void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &coun
 			curr_obj.set_is_counted();
 			count_RL++;
 			// cout << "objects moving Right to Left: " << count_RL << endl;
-			break;	
+			break;
 		} //switch
 	} //if counted
 }
@@ -366,27 +372,27 @@ char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle) 
 \*****************************************************************************/
 
 
-void get_setttings_inline(int argc, char** argv, string& vid_name, string& back_name) {
+void get_settings_inline(int argc, char** argv, string& vid_name, string& back_name) {
 	vid_name  = argv[1];
 	back_name = argv[2];
 
-	if(argc > 3) 
+	if(argc > 3)
 		MAX_DIST_SQD = char_to_int(argv[3]);
 
-	if(argc > 4) 
+	if(argc > 4)
 		SENSITIVITY_VALUE = char_to_int(argv[4]);
-	
-	if(argc > 5) 
+
+	if(argc > 5)
 		BLUR_SIZE = char_to_int(argv[5]);
 
-	if(argc > 6) 
+	if(argc > 6)
 		MIN_OBJ_AREA = char_to_int(argv[6]);
 
 	if(argc > 7)
 		show_help();
 }
 
-void get_setttings_file(int argc, char** argv, string& vid_name, string& back_name) {
+void get_settings_file(int argc, char** argv, string& vid_name, string& back_name) {
 	string next_line;
 	int input_cnt = 0;
 	bool done = false;
@@ -397,22 +403,22 @@ void get_setttings_file(int argc, char** argv, string& vid_name, string& back_na
 		while ( getline(file, next_line) && !done ) {
 			if(next_line[0] != '#') {
 				switch (input_cnt) {
-					case 0: 
+					case 0:
 						vid_name = next_line.c_str();
 						break;
-					case 1: 
+					case 1:
 						back_name = next_line.c_str();
 						break;
-					case 2: 
+					case 2:
 						MAX_DIST_SQD = str_to_int(next_line);
 						break;
-					case 3: 
+					case 3:
 						SENSITIVITY_VALUE = str_to_int(next_line);
 						break;
-					case 4: 
+					case 4:
 						BLUR_SIZE = str_to_int(next_line);
 						break;
-					case 5: 
+					case 5:
 						MIN_OBJ_AREA = str_to_int(next_line);
 						break;
 				} //switch
@@ -449,14 +455,14 @@ void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause
 	// case 1048688:
 	case 112: //'p' has been pressed. this will pause/resume the code.
 		pause = !pause;
-		if(pause == true){ 
+		if(pause == true){
 			cout << "Code paused, press 'p' again to resume" << endl;
 			while (pause == true){
-				//stay in this loop until 
+				//stay in this loop until
 				switch (waitKey()){
 					//a switch statement inside a switch statement? Mind blown.
 				// case 1048688:
-				case 112: 
+				case 112:
 					//change pause back to false
 					pause = false;
 					cout << "Code resumed." << endl;
@@ -464,7 +470,7 @@ void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause
 				}
 			}
 		}
-	} 
+	}
 }
 
 //@draws the rectagles
@@ -481,14 +487,14 @@ void draw_centers(vector<Object> &objects, Mat &display) {
 	Point2d temp_pt;
 	for(unsigned j = 0; j < objects.size(); j++) {
 		objects[j].get_center(temp_pt);
-	  circle( display, temp_pt, 5, Scalar( 0, 0, 255 ), 2, 1 ); 
-	  // circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 0, 255 ), 2, 1 ); 
+	  circle( display, temp_pt, 5, Scalar( 0, 0, 255 ), 2, 1 );
+	  // circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 0, 255 ), 2, 1 );
 	}
 }
 
 //@print instructions to standard output and crash program
 void show_help() {
-  cout << endl << 
+  cout << endl <<
   " Usage: ./counter.out <video_name> <gray background image> [MAX_DIST_SQD] [SENSITIVITY_VALUE] [BLUR_SIZE] [MIN_OBJ_AREA]\n"
   " examples:\n"
   " ./counter.out /home/pi/test_videos/my_vid.h264 NONE\n"
@@ -501,5 +507,5 @@ void show_help() {
   " example:\n"
   " ./counter.out config_example.txt\n"
   << endl << endl;
-  exit(1); 
+  exit(1);
 }
