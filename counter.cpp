@@ -35,6 +35,7 @@
  */
 
 #include <opencv/cv.hpp>
+#include "opencv/background_segm.hpp"
 //#include <opencv/highgui.h>
 #include <stdio.h>
 #include <iostream>
@@ -55,8 +56,14 @@ static int BLUR_SIZE = 200; // original 10
 static double MIN_OBJ_AREA = 1000;
 
 void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back);
+void track_with_non_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use_static_back,
+																double& next_id, int& count_LR, int& count_RL);
 void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
-void static_background_subtraction(Mat &newImage, Mat &backImage, bool debugMode, Mat &thresholdImage);
+//void static_background_subtraction(Mat &newImage, Mat &backImage, bool debugMode, Mat &thresholdImage);
+void track_with_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use_static_back,
+														double& next_id, int& count_LR, int& count_RL);
+// void do_adaptive_BS(Ptr<BackgroundSubtractor> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage);
+void do_adaptive_BS(BackgroundSubtractorMOG2& subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat &thresholdImage, Mat &display, 
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1);
@@ -76,20 +83,13 @@ void show_help();
 
 int main(int argc, char** argv){
 
-	bool debugMode = false;
-	bool trackingEnabled = false;
-	bool pause = false;
-	bool use_static_back = false;
-	bool background_is_video = true;
-	bool success, loop_switch;
+	bool use_static_back = false;		 //TODO add to input settings
+	bool background_is_video = true; //TODO add to input settings maybe
 	double next_id = 0;
 	int count_LR = 0, count_RL = 0;
 
-	Mat frame1, frame2;
-	Mat grayImage1, grayImage2;
 	Mat grayBackground;
-	vector<Object> objects_0, objects_1;
-	Mat thresholdImage;
+
 	VideoCapture capture;
 	string vid_name;
 	string back_name;
@@ -102,10 +102,12 @@ int main(int argc, char** argv){
 		show_help();
 	}
 	
+	//TODO only do this if necessary
 	set_background(back_name, background_is_video, grayBackground, use_static_back);
 
 	namedWindow("Frame1", CV_WINDOW_NORMAL);
 
+	//TODO we won't need this for live streaming
 	while(1){
 
 		cout << "reopening video" << endl;
@@ -116,44 +118,8 @@ int main(int argc, char** argv){
 			return -1;
 		}
 
-		success = capture.read(frame1);
-		if(!success){
-			cout << endl << "ERROR: frame 1 failed to be read" << endl;
-			exit(1);
-		}
-		cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
-		success = capture.read(frame2);
-		if(!success){
-			cout << endl << "ERROR: frame 2 failed to be read" << endl;
-			exit(1);
-		}
-
-		loop_switch = true;
-		while( success ) {
-			// cout << "new frame" << endl;
-
-			cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
-			if(use_static_back)
-				do_non_adaptive_BS(grayBackground, grayImage2, debugMode, thresholdImage);
-			else
-				do_non_adaptive_BS(grayImage1, grayImage2, debugMode, thresholdImage);
-
-			if(trackingEnabled) {
-				search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
-			}
-
-			imshow("Frame1",frame2);
-			resizeWindow("Frame1", 512, 384);
-
-			interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
-
-			if(!use_static_back) {
-				frame2.copyTo(frame1);
-				cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
-			}
-			success = capture.read(frame2);
-			loop_switch = !loop_switch;
-		} // inner while loop
+		//TODO various BS options
+		track_with_non_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
 		
 		//release the capture before re-opening and looping again.
 		capture.release();
@@ -181,6 +147,168 @@ void set_background(string back_name, bool background_is_video, Mat& grayBackgro
 	}
 }
 
+void track_with_non_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use_static_back,
+																double& next_id, int& count_LR, int& count_RL) {
+	bool debugMode = false;
+	bool trackingEnabled = false;
+	bool pause = false;
+	bool success = false;
+	bool loop_switch = true;
+
+	Mat frame1, frame2;
+	Mat grayImage1, grayImage2;
+	vector<Object> objects_0, objects_1;
+	Mat thresholdImage;
+
+	success = capture.read(frame1);
+	if(!success){
+		cout << endl << "ERROR: frame 1 failed to be read" << endl;
+		exit(1);
+	}
+	cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
+	success = capture.read(frame2);
+	if(!success){
+		cout << endl << "ERROR: frame 2 failed to be read" << endl;
+		exit(1);
+	}
+
+	while( success ) {
+		// cout << "new frame" << endl;
+
+		cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
+		if(use_static_back)
+			do_non_adaptive_BS(grayBackground, grayImage2, debugMode, thresholdImage);
+		else
+			do_non_adaptive_BS(grayImage1, grayImage2, debugMode, thresholdImage);
+
+		if(trackingEnabled) {
+			search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
+		}
+
+		imshow("Frame1",frame2);
+		resizeWindow("Frame1", 512, 384);
+
+		interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
+
+		if(!use_static_back) {
+			frame2.copyTo(frame1);
+			cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
+		}
+		success = capture.read(frame2);
+		loop_switch = !loop_switch;
+	} // inner while loop
+}
+
+//@compares two grayscale images using simple background sutraction
+//	also displays the stages if requested
+void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage) {
+	Mat differenceImage, blurImage;
+
+	absdiff(grayImage1, grayImage2, differenceImage);
+	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+
+	if(debugMode) {
+		namedWindow("Difference Image", CV_WINDOW_NORMAL);
+		imshow("Difference Image", differenceImage);
+		resizeWindow("Difference Image", 512, 384);
+		namedWindow("Threshold Image", CV_WINDOW_NORMAL);
+		imshow("Threshold Image", thresholdImage);
+		resizeWindow("Threshold Image", 512, 384);
+	} else {
+		destroyWindow("Difference Image");
+		destroyWindow("Threshold Image");
+	}
+
+	blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
+	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+
+	if(debugMode){
+		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
+		imshow("Final Threshold Image", thresholdImage);
+		resizeWindow("Final Threshold Image", 512, 384);
+	}
+	else {
+		destroyWindow("Final Threshold Image");
+	}
+}
+
+//track objects through video using GMM background subtraction
+//TODO do we actually want gray images for this version?
+void track_with_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use_static_back,
+														double& next_id, int& count_LR, int& count_RL) {
+	bool debugMode = false;
+	bool trackingEnabled = false;
+	bool pause = false;
+	bool success = false;
+	bool loop_switch = true;
+
+	// Ptr<BackgroundSubtractorMOG2> subtractor = BackgroundSubtractorMOG2();
+	BackgroundSubtractorMOG2 subtractor = BackgroundSubtractorMOG2();
+	Mat frame, grayImage;
+	Mat thresholdImage;
+	vector<Object> objects_0, objects_1;
+
+	success = capture.read(frame);
+	if(!success){
+		cout << endl << "ERROR: frame failed to be read" << endl;
+		exit(1);
+	}
+
+	while( success ) {
+		cvtColor(frame, grayImage, COLOR_BGR2GRAY);
+		do_adaptive_BS(subtractor, grayImage, debugMode, thresholdImage);
+
+		if(trackingEnabled) {
+			search_for_movement( thresholdImage, frame, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
+		}
+
+		imshow("Frame1",frame);
+		resizeWindow("Frame1", 512, 384);
+
+		interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
+
+		success = capture.read(frame);
+		loop_switch = !loop_switch;
+	} // inner while loop
+}
+
+//@finds movement blobs based on GMM background subtraction
+//	also displays the stages if requested
+void do_adaptive_BS(BackgroundSubtractorMOG2& subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage) {
+// void do_adaptive_BS(Ptr<BackgroundSubtractor> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage) {
+	Mat differenceImage, blurImage;
+
+	subtractor->apply(grayImage, differenceImage);
+	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+
+	if(debugMode) {
+		namedWindow("Difference Image", CV_WINDOW_NORMAL);
+		imshow("Difference Image", differenceImage);
+		resizeWindow("Difference Image", 512, 384);
+		namedWindow("Threshold Image", CV_WINDOW_NORMAL);
+		imshow("Threshold Image", thresholdImage);
+		resizeWindow("Threshold Image", 512, 384);
+	} else {
+		destroyWindow("Difference Image");
+		destroyWindow("Threshold Image");
+	}
+
+	// TODO determine if this is useful
+	// blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
+	// threshold(blurImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+
+	// if(debugMode){
+	// 	namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
+	// 	imshow("Final Threshold Image", thresholdImage);
+	// 	resizeWindow("Final Threshold Image", 512, 384);
+	// }
+	// else {
+	// 	destroyWindow("Final Threshold Image");
+	// }
+}
+
+//@identifies objects based on threshold image and previous objects
+//@
 void search_for_movement(Mat &thresholdImage, Mat &display, 
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1){
@@ -259,39 +387,6 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 
 } //search for movement
 
-//@compares two grayscale images using simple background sutraction
-//	also displays the stages if requested
-void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage) {
-	Mat differenceImage, blurImage;
-
-	absdiff(grayImage1, grayImage2, differenceImage);
-	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
-
-	if(debugMode) {
-		namedWindow("Difference Image", CV_WINDOW_NORMAL);
-		imshow("Difference Image", differenceImage);
-		resizeWindow("Difference Image", 512, 384);
-		namedWindow("Threshold Image", CV_WINDOW_NORMAL);
-		imshow("Threshold Image", thresholdImage);
-		resizeWindow("Threshold Image", 512, 384);
-	} else {
-		destroyWindow("Difference Image");
-		destroyWindow("Threshold Image");
-	}
-
-	blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
-	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
-
-	if(debugMode){
-		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
-		imshow("Final Threshold Image", thresholdImage);
-		resizeWindow("Final Threshold Image", 512, 384);
-	}
-	else {
-		destroyWindow("Final Threshold Image");
-	}
-}
-
 //@searches through list of old object to find match for the new one
 //@returns pointer to the old one
 Object* find_previous_object(vector<Object> &old_objs, Object &curr_obj) {
@@ -365,7 +460,7 @@ char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle) 
 
 \*****************************************************************************/
 
-
+//@parse command line parameters to use as settings for the 
 void get_setttings_inline(int argc, char** argv, string& vid_name, string& back_name) {
 	vid_name  = argv[1];
 	back_name = argv[2];
@@ -381,11 +476,9 @@ void get_setttings_inline(int argc, char** argv, string& vid_name, string& back_
 
 	if(argc > 6) 
 		MIN_OBJ_AREA = char_to_int(argv[6]);
-
-	if(argc > 7)
-		show_help();
 }
 
+//@read file to get  proper settings and file names
 void get_setttings_file(int argc, char** argv, string& vid_name, string& back_name) {
 	string next_line;
 	int input_cnt = 0;
