@@ -13,18 +13,18 @@ using namespace std;
 
 class ImageInput {
 public:
-  ImageInput();
   // Constructor for live feed
-  ImageInput(String vid_name);
+  ImageInput();
   // Constructor for video from file
-  ~ImageInput();
+  ImageInput(String vid_name);
   // Generic destructor
-  bool open();
+  ~ImageInput();
   // opens the capture
-  bool read(Mat& frame);
+  bool open();
   // Get next frame
-  void release();
+  bool read(Mat& frame);
   // Release input
+  void release();
 private:
   bool         isLive;            // whether to use a live stream or video file
   string       vid_name;          // filepath of video, if capturing from file
