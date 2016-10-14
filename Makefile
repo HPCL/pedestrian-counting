@@ -1,8 +1,8 @@
 CC = g++
 
 #TODO figure out which I actually need
-BASE_LIBS = -lopencv_imgproc -lopencv_highgui -lopencv_objdetect -lopencv_core -lopencv_videoio -lopencv_imgcodecs
-ALL_LIBS  = -lopencv_imgproc -lopencv_highgui -lopencv_objdetect -lopencv_core -lopencv_videoio -lopencv_imgcodecs
+BASE_LIBS = -lopencv_imgproc -lopencv_highgui -lopencv_objdetect -lopencv_core -lopencv_videoio -lopencv_imgcodecs -lraspicam -lraspicam_cv
+ALL_LIBS  = -lopencv_imgproc -lopencv_highgui -lopencv_objdetect -lopencv_core -lopencv_video -lopencv_videoio -lopencv_imgcodecs -lraspicam -lraspicam_cv
 OCV_PATH  = -I/usr/include/
 VID_PATH  = /home/pi/test_videos
 

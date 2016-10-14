@@ -5,6 +5,7 @@
 #ifndef IMAGE_INPUT_H
 #define IMAGE_INPUT_H
 
+//#include </usr/local/include/raspicam/raspicam_cv.h>
 #include <raspicam/raspicam_cv.h>
 #include <opencv/cv.hpp>
 

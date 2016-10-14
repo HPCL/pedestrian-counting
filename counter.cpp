@@ -39,8 +39,9 @@
 
 #include <opencv/cv.hpp>
 #include "opencv2/core.hpp"
+// #include <raspicam/raspicam_cv.h>
 // #include "opencv2/background_segm.hpp"
-//#include <opencv/highgui.h>
+// #include <opencv/highgui.h>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -61,15 +62,15 @@ static int BLUR_SIZE = 200; // original 10
 static double MIN_OBJ_AREA = 1000;
 
 void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back);
-void track_with_non_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use_static_back,
+void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
 																double& next_id, int& count_LR, int& count_RL);
 void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 
 //void static_background_subtraction(Mat &newImage, Mat &backImage, bool debugMode, Mat &thresholdImage);
-void track_with_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use_static_back,
+void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
 														double& next_id, int& count_LR, int& count_RL);
 // void do_adaptive_BS(Ptr<BackgroundSubtractor> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage);
-void do_adaptive_BS(BackgroundSubtractorMOG2& subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage);
+void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat &thresholdImage, Mat &display, 
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1);
@@ -97,6 +98,7 @@ int main(int argc, char** argv){
 	Mat grayBackground;
 	vector<Object> objects_0, objects_1;
 	Mat thresholdImage;
+	ImageInput* capture;
 
 	string vid_name;
 	string back_name;
@@ -110,9 +112,9 @@ int main(int argc, char** argv){
 	}
 
 	if(vid_name == "RASPICAM") {
-		ImageInput capture();
+		capture = new ImageInput();
 	} else {
-		ImageInput capture(vid_name);
+		capture = new ImageInput(vid_name);
 	}
 	
 	//TODO only do this if necessary
@@ -123,58 +125,59 @@ int main(int argc, char** argv){
 	//TODO we won't need this for live streaming
 	while(1){
 
-		cout << "reopening video" << endl;
-		success = capture.open();
-		if(!success){
-			cout<<"ERROR ACQUIRING VIDEO FEED\n";
-			getchar();
-			return -1;
-		}
+		//TODO I think this is in a separate function now
+		// cout << "reopening video" << endl;
+		// success = capture.open();
+		// if(!success){
+		// 	cout<<"ERROR ACQUIRING VIDEO FEED\n";
+		// 	getchar();
+		// 	return -1;
+		// }
 
-		success = capture.read(frame1);
-		if(!success){
-			cout << endl << "ERROR: frame 1 failed to be read" << endl;
-			exit(1);
-		}
-		cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
-		success = capture.read(frame2);
-		if(!success){
-			cout << endl << "ERROR: frame 2 failed to be read" << endl;
-			exit(1);
-		}
+		// success = capture.read(frame1);
+		// if(!success){
+		// 	cout << endl << "ERROR: frame 1 failed to be read" << endl;
+		// 	exit(1);
+		// }
+		// cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
+		// success = capture.read(frame2);
+		// if(!success){
+		// 	cout << endl << "ERROR: frame 2 failed to be read" << endl;
+		// 	exit(1);
+		// }
 
-		loop_switch = true;
-		while( success ) {
-			// cout << "new frame" << endl;
+		// loop_switch = true;
+		// while( success ) {
+		// 	// cout << "new frame" << endl;
 
-			cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
-			if(use_static_back)
-				do_non_adaptive_BS(grayBackground, grayImage2, debugMode, thresholdImage);
-			else
-				do_non_adaptive_BS(grayImage1, grayImage2, debugMode, thresholdImage);
+		// 	cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
+		// 	if(use_static_back)
+		// 		do_non_adaptive_BS(grayBackground, grayImage2, debugMode, thresholdImage);
+		// 	else
+		// 		do_non_adaptive_BS(grayImage1, grayImage2, debugMode, thresholdImage);
 
-			if(trackingEnabled) {
-				search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1);
-			}
+		// 	if(trackingEnabled) {
+		// 		search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1);
+		// 	}
 
-			imshow("Frame1",frame2);
-			resizeWindow("Frame1", 512, 384);
+		// 	imshow("Frame1",frame2);
+		// 	resizeWindow("Frame1", 512, 384);
 
-			interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
+		// 	interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
 
-			if(!use_static_back) {
-				frame2.copyTo(frame1);
-				cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
-			}
-			success = capture.read(frame2);
-			loop_switch = !loop_switch;
-		} // inner while loop
+		// 	if(!use_static_back) {
+		// 		frame2.copyTo(frame1);
+		// 		cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
+		// 	}
+		// 	success = capture.read(frame2);
+		// 	loop_switch = !loop_switch;
+		// } // inner while loop
 
 		//TODO various BS options
 		track_with_non_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
 		
 		//release the capture before re-opening and looping again.
-		capture.release();
+		capture->release();
 		cout << "Next id for object (total id'd): " << next_id << endl;
 		cout << "objects moving Left to Right:    " << count_LR << endl;
 		cout << "objects moving Right to Left:    " << count_RL << endl;
@@ -199,7 +202,7 @@ void set_background(string back_name, bool background_is_video, Mat& grayBackgro
 	}
 }
 
-void track_with_non_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use_static_back,
+void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
 																double& next_id, int& count_LR, int& count_RL) {
 	bool debugMode = false;
 	bool trackingEnabled = false;
@@ -212,13 +215,13 @@ void track_with_non_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool
 	vector<Object> objects_0, objects_1;
 	Mat thresholdImage;
 
-	success = capture.read(frame1);
+	success = capture->read(frame1);
 	if(!success){
 		cout << endl << "ERROR: frame 1 failed to be read" << endl;
 		exit(1);
 	}
 	cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
-	success = capture.read(frame2);
+	success = capture->read(frame2);
 	if(!success){
 		cout << endl << "ERROR: frame 2 failed to be read" << endl;
 		exit(1);
@@ -246,7 +249,7 @@ void track_with_non_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool
 			frame2.copyTo(frame1);
 			cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
 		}
-		success = capture.read(frame2);
+		success = capture->read(frame2);
 		loop_switch = !loop_switch;
 	} // inner while loop
 }
@@ -286,7 +289,7 @@ void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &t
 
 //track objects through video using GMM background subtraction
 //TODO do we actually want gray images for this version?
-void track_with_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use_static_back,
+void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
 														double& next_id, int& count_LR, int& count_RL) {
 	bool debugMode = false;
 	bool trackingEnabled = false;
@@ -295,12 +298,12 @@ void track_with_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use
 	bool loop_switch = true;
 
 	// Ptr<BackgroundSubtractorMOG2> subtractor = BackgroundSubtractorMOG2();
-	BackgroundSubtractorMOG2 subtractor = BackgroundSubtractorMOG2();
+	Ptr<BackgroundSubtractorMOG2> subtractor = createBackgroundSubtractorMOG2();
 	Mat frame, grayImage;
 	Mat thresholdImage;
 	vector<Object> objects_0, objects_1;
 
-	success = capture.read(frame);
+	success = capture->read(frame);
 	if(!success){
 		cout << endl << "ERROR: frame failed to be read" << endl;
 		exit(1);
@@ -319,14 +322,14 @@ void track_with_adaptive_BS(VideoCapture& capture, Mat& grayBackground, bool use
 
 		interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
 
-		success = capture.read(frame);
+		success = capture->read(frame);
 		loop_switch = !loop_switch;
 	} // inner while loop
 }
 
 //@finds movement blobs based on GMM background subtraction
 //	also displays the stages if requested
-void do_adaptive_BS(BackgroundSubtractorMOG2& subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage) {
+void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage) {
 // void do_adaptive_BS(Ptr<BackgroundSubtractor> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage) {
 	Mat differenceImage, blurImage;
 
