@@ -31,6 +31,7 @@ bool ImageInput::read(Mat& frame) {
   if(isLive) {
     rasp_cam.grab();
     rasp_cam.retrieve(frame);
+    return !(frame.empty());
   } else {
     return vid_capture.read(frame);
   }

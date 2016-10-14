@@ -92,6 +92,7 @@ int main(int argc, char** argv){
 
 	bool use_static_back = false;		 //TODO add to input settings
 	bool background_is_video = true; //TODO add to input settings maybe
+	bool success = false;
 	double next_id = 0;
 	int count_LR = 0, count_RL = 0;
 
@@ -113,65 +114,27 @@ int main(int argc, char** argv){
 
 	if(vid_name == "RASPICAM") {
 		capture = new ImageInput();
+		cout << "using live stream" << endl;
 	} else {
 		capture = new ImageInput(vid_name);
+		cout << "using video: " << vid_name << endl;
 	}
 	
 	//TODO only do this if necessary
-	set_background(back_name, background_is_video, grayBackground, use_static_back);
+	if(use_static_back)
+		set_background(back_name, background_is_video, grayBackground, use_static_back);
 
 	namedWindow("Frame1", CV_WINDOW_NORMAL);
 
 	//TODO we won't need this for live streaming
 	while(1){
 
-		//TODO I think this is in a separate function now
-		// cout << "reopening video" << endl;
-		// success = capture.open();
-		// if(!success){
-		// 	cout<<"ERROR ACQUIRING VIDEO FEED\n";
-		// 	getchar();
-		// 	return -1;
-		// }
-
-		// success = capture.read(frame1);
-		// if(!success){
-		// 	cout << endl << "ERROR: frame 1 failed to be read" << endl;
-		// 	exit(1);
-		// }
-		// cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
-		// success = capture.read(frame2);
-		// if(!success){
-		// 	cout << endl << "ERROR: frame 2 failed to be read" << endl;
-		// 	exit(1);
-		// }
-
-		// loop_switch = true;
-		// while( success ) {
-		// 	// cout << "new frame" << endl;
-
-		// 	cvtColor(frame2, grayImage2, COLOR_BGR2GRAY);
-		// 	if(use_static_back)
-		// 		do_non_adaptive_BS(grayBackground, grayImage2, debugMode, thresholdImage);
-		// 	else
-		// 		do_non_adaptive_BS(grayImage1, grayImage2, debugMode, thresholdImage);
-
-		// 	if(trackingEnabled) {
-		// 		search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1);
-		// 	}
-
-		// 	imshow("Frame1",frame2);
-		// 	resizeWindow("Frame1", 512, 384);
-
-		// 	interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
-
-		// 	if(!use_static_back) {
-		// 		frame2.copyTo(frame1);
-		// 		cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
-		// 	}
-		// 	success = capture.read(frame2);
-		// 	loop_switch = !loop_switch;
-		// } // inner while loop
+		success = capture->open();
+		if(!success){
+			cout<<"ERROR ACQUIRING VIDEO FEED\n";
+			getchar();
+			exit(1);
+		} 
 
 		//TODO various BS options
 		track_with_non_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
@@ -198,6 +161,7 @@ void set_background(string back_name, bool background_is_video, Mat& grayBackgro
 	//cvtColor(grayBackground, grayBackground, COLOR_BGR2GRAY);
 	if(use_static_back && grayBackground.empty()) {
 		cout << "ERROR: Could not read background image" << endl;
+		getchar();
 		exit(1);
 	}
 }
@@ -218,12 +182,14 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 	success = capture->read(frame1);
 	if(!success){
 		cout << endl << "ERROR: frame 1 failed to be read" << endl;
+		getchar();
 		exit(1);
 	}
 	cvtColor(frame1, grayImage1, COLOR_BGR2GRAY);
 	success = capture->read(frame2);
 	if(!success){
 		cout << endl << "ERROR: frame 2 failed to be read" << endl;
+		getchar();
 		exit(1);
 	}
 
@@ -306,6 +272,7 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 	success = capture->read(frame);
 	if(!success){
 		cout << endl << "ERROR: frame failed to be read" << endl;
+		getchar();
 		exit(1);
 	}
 
@@ -571,6 +538,7 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 		file.close();
 	} else {
 		cout << "ERROR: Could nt open configuration file." << endl;
+		getchar();
 		exit(1);
 	}
 

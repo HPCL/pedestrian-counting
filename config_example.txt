@@ -11,7 +11,7 @@
 # MIN_OBJ_AREA
 #
 # examle (not recommeded settings):
-/home/pi/test_videos/three_single_LR.h264
+/home/pi/test_videos/thee_bikes_one_truck.mp4
 NONE
 50
 20
