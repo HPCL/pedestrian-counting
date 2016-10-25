@@ -11,11 +11,11 @@
 # MIN_OBJ_AREA
 #
 # examle (not recommeded settings):
-/home/pi/test_videos/thee_bikes_one_truck.mp4
+/home/pi/test_videos/three_bikes_one_truck.mp4
 NONE
 50
 20
 # comments can go here too!
 10
 10
-
+M

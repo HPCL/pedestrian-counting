@@ -80,7 +80,7 @@ char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
 char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle);
 
 void get_settings_inline(int argc, char** argv, string& vid_name, string& back_name);
-void get_settings_file(int argc, char** argv, string& vid_name, string& back_name);
+void get_settings_file(int argc, char** argv, string& vid_name, string& back_name, char& bs_type);
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
 void draw_centers(vector<Object> &objects, Mat &display);
@@ -90,11 +90,13 @@ void show_help();
 
 int main(int argc, char** argv){
 
-	bool use_static_back = false;		 //TODO add to input settings
-	bool background_is_video = true; //TODO add to input settings maybe
-	bool success = false;
-	double next_id = 0;
-	int count_LR = 0, count_RL = 0;
+	//TODO combine static back and bs type?
+	bool use_static_back = false;		  // use a static image for background
+	bool background_is_video = true; 	// obtain static back from video
+	bool success = false;							// boolean set when image capture works
+	char bs_type = 'N';								// back subtraction algo 'M' for MOG2, non-adaptive is default
+	double next_id = 0;								// the next id to use
+	int count_LR = 0, count_RL = 0;		// counts of objects
 
 	Mat grayBackground;
 	vector<Object> objects_0, objects_1;
@@ -105,7 +107,7 @@ int main(int argc, char** argv){
 	string back_name;
 
 	if(argc == 2) {
-		get_settings_file(argc, argv, vid_name, back_name);
+		get_settings_file(argc, argv, vid_name, back_name, bs_type);
 	} else if( (argc >= 3) && (argc < 8) ) {
 		get_settings_inline(argc, argv, vid_name, back_name);
 	} else {
@@ -120,13 +122,12 @@ int main(int argc, char** argv){
 		cout << "using video: " << vid_name << endl;
 	}
 	
-	//TODO only do this if necessary
 	if(use_static_back)
 		set_background(back_name, background_is_video, grayBackground, use_static_back);
 
 	namedWindow("Frame1", CV_WINDOW_NORMAL);
 
-	//TODO we won't need this for live streaming
+	//TODO we won't need this loop for live streaming
 	while(1){
 
 		success = capture->open();
@@ -136,9 +137,12 @@ int main(int argc, char** argv){
 			exit(1);
 		} 
 
-		//TODO various BS options
-		track_with_non_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
-		
+		if (bs_type == 'M') {
+			track_with_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
+		} else {
+			track_with_non_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
+		}
+
 		//release the capture before re-opening and looping again.
 		capture->release();
 		cout << "Next id for object (total id'd): " << next_id << endl;
@@ -255,6 +259,7 @@ void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &t
 
 //track objects through video using GMM background subtraction
 //TODO do we actually want gray images for this version?
+//TODO is this actually different than non adaptive tracking?
 void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
 														double& next_id, int& count_LR, int& count_RL) {
 	bool debugMode = false;
@@ -316,17 +321,17 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &grayImage, bo
 	}
 
 	// TODO determine if this is useful
-	// blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
-	// threshold(blurImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+	blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
+	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
 
-	// if(debugMode){
-	// 	namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
-	// 	imshow("Final Threshold Image", thresholdImage);
-	// 	resizeWindow("Final Threshold Image", 512, 384);
-	// }
-	// else {
-	// 	destroyWindow("Final Threshold Image");
-	// }
+	if(debugMode){
+		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
+		imshow("Final Threshold Image", thresholdImage);
+		resizeWindow("Final Threshold Image", 512, 384);
+	}
+	else {
+		destroyWindow("Final Threshold Image");
+	}
 }
 
 //@identifies objects based on threshold image and previous objects
@@ -502,7 +507,7 @@ void get_settings_inline(int argc, char** argv, string& vid_name, string& back_n
 }
 
 //@read file to get  proper settings and file names
-void get_settings_file(int argc, char** argv, string& vid_name, string& back_name) {
+void get_settings_file(int argc, char** argv, string& vid_name, string& back_name, char& bs_type) {
 	string next_line;
 	int input_cnt = 0;
 	bool done = false;
@@ -514,6 +519,7 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 			if(next_line[0] != '#') {
 				switch (input_cnt) {
 					case 0:
+						//TODO handle live stream
 						vid_name = next_line.c_str();
 						break;
 					case 1:
@@ -530,6 +536,9 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 						break;
 					case 5:
 						MIN_OBJ_AREA = str_to_int(next_line);
+						break;
+					case 6:
+						bs_type = next_line[0];
 						break;
 				} //switch
 				input_cnt++;
