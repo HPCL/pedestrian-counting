@@ -10,13 +10,10 @@
 # BLUR_SIZE
 # MIN_OBJ_AREA
 # background subtraction algorithm (M for MOG2, defualt will be non-adaptive)
-#
-# example (not recommeded settings):
 /home/pi/test_videos/three_bikes_one_truck.mp4
 NONE
 6000000
 50
-# comments can go here too!
-10
-10
+200
+500
 M

@@ -259,7 +259,6 @@ void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &t
 
 //track objects through video using GMM background subtraction
 //TODO do we actually want gray images for this version?
-//TODO is this actually different than non adaptive tracking?
 void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
 														double& next_id, int& count_LR, int& count_RL) {
 	bool debugMode = false;
@@ -268,7 +267,6 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 	bool success = false;
 	bool loop_switch = true;
 
-	// Ptr<BackgroundSubtractorMOG2> subtractor = BackgroundSubtractorMOG2();
 	Ptr<BackgroundSubtractorMOG2> subtractor = createBackgroundSubtractorMOG2();
 	Mat frame, grayImage;
 	Mat thresholdImage;
@@ -302,7 +300,6 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 //@finds movement blobs based on GMM background subtraction
 //	also displays the stages if requested
 void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage) {
-// void do_adaptive_BS(Ptr<BackgroundSubtractor> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage) {
 	Mat differenceImage, blurImage;
 
 	subtractor->apply(grayImage, differenceImage);
@@ -555,6 +552,8 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 
 //@interpret keyboard input for runtime options
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause) {
+	char c2 = 'x';
+	bool wait = pause;
 	switch(c){
 	// case 1048603:
 	case 27: //'esc' key has been pressed, exit program.
@@ -575,22 +574,28 @@ void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause
 	// case 1048688:
 	case 112: //'p' has been pressed. this will pause/resume the code.
 		pause = !pause;
-		if(pause == true){
-			cout << "Code paused, press 'p' again to resume" << endl;
-			while (pause == true){
-				//stay in this loop until
-				switch (waitKey()){
-					//a switch statement inside a switch statement? Mind blown.
-				// case 1048688:
-				case 112:
-					//change pause back to false
-					pause = false;
-					cout << "Code resumed." << endl;
-					break;
-				}
+		wait = pause;
+		cout << "Code paused, press 'p' again to resume, 's' to step" << endl;
+	}
+
+	if(pause == true){
+		while (wait){
+			//stay in this loop until
+			c2 = waitKey(10);
+			switch (c2){
+			case 112: // p is for unpause
+				pause = false;
+				wait  = false;
+				cout << "Code resumed." << endl;
+				break;
+			case 115: // s is for step
+				pause = true;
+				wait  = false;
+				break;
 			}
 		}
 	}
+
 }
 
 //@draws the rectagles
