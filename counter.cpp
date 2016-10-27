@@ -55,7 +55,8 @@ using namespace cv;
 
 //our sensitivity value to be used in the threshold() function
 static double MAX_DIST_SQD = 6000000; // maximum distance between to centers to consider it one object
-static int SENSITIVITY_VALUE = 50; // original 20
+static int SENSITIVITY_VALUE_1 = 200; // values for cleaning noise out of difference images
+static int SENSITIVITY_VALUE_2 = 50; 
 //size of blur used to smooth the image to remove possible noise and
 //increase the size of the object we are trying to track. (Much like dilate and erode)
 static int BLUR_SIZE = 200; // original 10
@@ -66,11 +67,9 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 																double& next_id, int& count_LR, int& count_RL);
 void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 
-//void static_background_subtraction(Mat &newImage, Mat &backImage, bool debugMode, Mat &thresholdImage);
 void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
 														double& next_id, int& count_LR, int& count_RL);
-// void do_adaptive_BS(Ptr<BackgroundSubtractor> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage);
-void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage);
+void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat &thresholdImage, Mat &display, 
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1);
@@ -230,7 +229,7 @@ void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &t
 	Mat differenceImage, blurImage;
 
 	absdiff(grayImage1, grayImage2, differenceImage);
-	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
 
 	if(debugMode) {
 		namedWindow("Difference Image", CV_WINDOW_NORMAL);
@@ -245,7 +244,7 @@ void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &t
 	}
 
 	blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
-	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
 	if(debugMode){
 		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
@@ -294,16 +293,16 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 
 		success = capture->read(frame);
 		loop_switch = !loop_switch;
-	} // inner while loop
+	} 
 }
 
 //@finds movement blobs based on GMM background subtraction
 //	also displays the stages if requested
-void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &grayImage, bool debugMode, Mat &thresholdImage) {
+void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool debugMode, Mat &thresholdImage) {
 	Mat differenceImage, blurImage;
 
-	subtractor->apply(grayImage, differenceImage);
-	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+	subtractor->apply(image, differenceImage);
+	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
 
 	if(debugMode) {
 		namedWindow("Difference Image", CV_WINDOW_NORMAL);
@@ -319,7 +318,7 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &grayImage, bo
 
 	// TODO determine if this is useful
 	blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
-	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE, 255, THRESH_BINARY);
+	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
 	if(debugMode){
 		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
@@ -485,7 +484,8 @@ char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle) 
 \*****************************************************************************/
 
 
-//@parse command line parameters to use as settings for the 
+//@parse command line parameters to use as settings for the program
+//TODO update with new options (already implemented in the file version)
 void get_settings_inline(int argc, char** argv, string& vid_name, string& back_name) {
 	vid_name  = argv[1];
 	back_name = argv[2];
@@ -493,8 +493,10 @@ void get_settings_inline(int argc, char** argv, string& vid_name, string& back_n
 	if(argc > 3)
 		MAX_DIST_SQD = char_to_int(argv[3]);
 
-	if(argc > 4)
-		SENSITIVITY_VALUE = char_to_int(argv[4]);
+	if(argc > 4){
+		SENSITIVITY_VALUE_1 = char_to_int(argv[4]);
+		SENSITIVITY_VALUE_2 = SENSITIVITY_VALUE_1;
+	}
 
 	if(argc > 5)
 		BLUR_SIZE = char_to_int(argv[5]);
@@ -526,15 +528,18 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 						MAX_DIST_SQD = str_to_int(next_line);
 						break;
 					case 3:
-						SENSITIVITY_VALUE = str_to_int(next_line);
+						SENSITIVITY_VALUE_1 = str_to_int(next_line);
 						break;
 					case 4:
-						BLUR_SIZE = str_to_int(next_line);
+						SENSITIVITY_VALUE_2 = str_to_int(next_line);
 						break;
 					case 5:
-						MIN_OBJ_AREA = str_to_int(next_line);
+						BLUR_SIZE = str_to_int(next_line);
 						break;
 					case 6:
+						MIN_OBJ_AREA = str_to_int(next_line);
+						break;
+					case 7:
 						bs_type = next_line[0];
 						break;
 				} //switch
