@@ -267,7 +267,7 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 	bool loop_switch = true;
 
 	Ptr<BackgroundSubtractorMOG2> subtractor = createBackgroundSubtractorMOG2();
-	Mat frame, grayImage;
+	Mat frame, image;
 	Mat thresholdImage;
 	vector<Object> objects_0, objects_1;
 
@@ -279,8 +279,8 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 	}
 
 	while( success ) {
-		cvtColor(frame, grayImage, COLOR_BGR2GRAY);
-		do_adaptive_BS(subtractor, grayImage, debugMode, thresholdImage);
+		image = frame.clone();
+		do_adaptive_BS(subtractor, image, debugMode, thresholdImage);
 
 		if(trackingEnabled) {
 			search_for_movement( thresholdImage, frame, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
@@ -302,6 +302,7 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 	Mat differenceImage, blurImage;
 
 	subtractor->apply(image, differenceImage);
+	blur(differenceImage, differenceImage, Size(BLUR_SIZE, BLUR_SIZE));
 	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
 
 	if(debugMode) {
