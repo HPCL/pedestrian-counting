@@ -59,7 +59,8 @@ static int SENSITIVITY_VALUE_1 = 200; // values for cleaning noise out of differ
 static int SENSITIVITY_VALUE_2 = 50; 
 //size of blur used to smooth the image to remove possible noise and
 //increase the size of the object we are trying to track. (Much like dilate and erode)
-static int BLUR_SIZE = 200; // original 10
+static int BLUR_SIZE_1 = 200;
+static int BLUR_SIZE_2 = 200;
 static double MIN_OBJ_AREA = 1000;
 
 void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back);
@@ -243,7 +244,7 @@ void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &t
 		destroyWindow("Threshold Image");
 	}
 
-	blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
+	blur(thresholdImage, blurImage, Size(BLUR_SIZE_1, BLUR_SIZE_1));
 	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
 	if(debugMode){
@@ -302,7 +303,7 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 	Mat differenceImage, blurImage;
 
 	subtractor->apply(image, differenceImage);
-	blur(differenceImage, differenceImage, Size(BLUR_SIZE, BLUR_SIZE));
+	blur(differenceImage, differenceImage, Size(BLUR_SIZE_1, BLUR_SIZE_1));
 	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
 
 	if(debugMode) {
@@ -318,7 +319,7 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 	}
 
 	// TODO determine if this is useful
-	blur(thresholdImage, blurImage, Size(BLUR_SIZE, BLUR_SIZE));
+	blur(thresholdImage, blurImage, Size(BLUR_SIZE_2, BLUR_SIZE_2));
 	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
 	if(debugMode){
@@ -500,7 +501,8 @@ void get_settings_inline(int argc, char** argv, string& vid_name, string& back_n
 	}
 
 	if(argc > 5)
-		BLUR_SIZE = char_to_int(argv[5]);
+		BLUR_SIZE_1 = char_to_int(argv[5]);
+		BLUR_SIZE_2 = char_to_int(argv[5]);
 
 	if(argc > 6)
 		MIN_OBJ_AREA = char_to_int(argv[6]);
@@ -535,12 +537,15 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 						SENSITIVITY_VALUE_2 = str_to_int(next_line);
 						break;
 					case 5:
-						BLUR_SIZE = str_to_int(next_line);
+						BLUR_SIZE_1 = str_to_int(next_line);
 						break;
 					case 6:
-						MIN_OBJ_AREA = str_to_int(next_line);
+						BLUR_SIZE_2 = str_to_int(next_line);
 						break;
 					case 7:
+						MIN_OBJ_AREA = str_to_int(next_line);
+						break;
+					case 8:
 						bs_type = next_line[0];
 						break;
 				} //switch
@@ -618,8 +623,9 @@ void draw_centers(vector<Object> &objects, Mat &display) {
 	Point2d temp_pt;
 	for(unsigned j = 0; j < objects.size(); j++) {
 		objects[j].get_center(temp_pt);
-	  circle( display, temp_pt, 5, Scalar( 0, 0, 255 ), 2, 1 );
-	  // circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 0, 255 ), 2, 1 );
+	  // circle( display, temp_pt, 5, Scalar( 0, 0, 255 ), 2, 1 );
+	  circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 0, 255 ), 2, 1 );
+	  putText(display,"Object: " + int_to_str(objects[j].get_id()), temp_pt, 1, 1, Scalar(255,0,0), 2);
 	}
 }
 

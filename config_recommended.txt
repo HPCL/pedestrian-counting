@@ -6,16 +6,18 @@
 # video name or (soon) CAMERA
 # background file name or NONE
 # MAX_DIST_SQD
-# SENSITIVITY_VALUE_1 (preblur)
-# SENSITIVITY_VALUE_2 (postblur)
-# BLUR_SIZE
+# SENSITIVITY_VALUE_1
+# SENSITIVITY_VALUE_2
+# BLUR_SIZE_1
+# BLUR_SIZE_2
 # MIN_OBJ_AREA
 # background subtraction algorithm (M for MOG2, defualt will be non-adaptive)
 /home/pi/test_videos/three_bikes_one_truck.mp4
 NONE
 6000000
 170
-50
+30
 5
+20
 70
 M
