@@ -2,9 +2,10 @@
 a program to count pedestrians and bikers with a raspberry pi and OpenCV
 
 ## TODO
-  * add adaptive background subtraction (GMM type)
+  * accurate counting
+    * distance error?
   * test live stream option
-  * get better test videos
+  * get more test videos
 
 ## counter.cpp
   * main counting program
