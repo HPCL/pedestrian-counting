@@ -6,18 +6,24 @@
 # video name or (soon) CAMERA
 # background file name or NONE
 # MAX_DIST_SQD
-# SENSITIVITY_VALUE_1
-# SENSITIVITY_VALUE_2
+# SENSITIVITY_VALUE_1 only 3 colors to filter black (0), gray (128ish), or white(255)
+# SENSITIVITY_VALUE_2 more filtering options
 # BLUR_SIZE_1
 # BLUR_SIZE_2
 # MIN_OBJ_AREA
-# background subtraction algorithm (M for MOG2, defualt will be non-adaptive)
+# background subtraction algorithm (M for MOG2, default will be non-adaptive)
 /home/pi/test_videos/three_bikes_one_truck.mp4
 NONE
-6000000
-170
+#MDS
+#6000000
+400
+# SV
+200
 30
+# BS
 5
 20
+# MOA
 70
+# BS algo
 M

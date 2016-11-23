@@ -74,6 +74,8 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 void search_for_movement(Mat &thresholdImage, Mat &display, 
 												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
 												vector<Object> &objects_0, vector<Object> &objects_1);
+void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_peak, bool debugMode);
+
 Object* find_previous_object(vector<Object> &old_objs, Object &curr_obj);
 void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &count_LR, int &count_RL);
 char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
@@ -303,7 +305,7 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 	Mat differenceImage, blurImage;
 
 	subtractor->apply(image, differenceImage);
-	blur(differenceImage, differenceImage, Size(BLUR_SIZE_1, BLUR_SIZE_1));
+	//blur(differenceImage, blurImage, Size(BLUR_SIZE_1, BLUR_SIZE_1));
 	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
 
 	if(debugMode) {
@@ -320,14 +322,21 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 
 	// TODO determine if this is useful
 	blur(thresholdImage, blurImage, Size(BLUR_SIZE_2, BLUR_SIZE_2));
-	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
+	//TODO paramertize %
+	//TODO figure out if this is actually better
+	dynamic_threshold(blurImage, thresholdImage, 0.5, debugMode);
+	//threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
 	if(debugMode){
+		namedWindow("Blur Image", CV_WINDOW_NORMAL);
+		imshow("Blur Image", blurImage);
+		resizeWindow("Blur Image", 512, 384);
 		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
 		imshow("Final Threshold Image", thresholdImage);
 		resizeWindow("Final Threshold Image", 512, 384);
 	}
 	else {
+		destroyWindow("Blur Image");
 		destroyWindow("Final Threshold Image");
 	}
 }
@@ -412,18 +421,75 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 
 } //search for movement
 
+
+//@perform thresholding in a dynamic manner
+//@params input_image     - the difference image you want to threshold
+//				threshold_image - the output threshold image
+//        percent_peak    - percent of histogram peak value at which to cut off
+//@pre input_image is a grayscale image of type CV_8U
+void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_peak, bool debugMode) {
+	int hist_size = 256;
+	float range[] = {0, hist_size};
+	const float* hist_range = {range};
+	bool uniform = true;
+	bool accumulate = false;
+	Mat hist;
+
+	int hist_peak = 0;
+	int hist_peak_val = 0;
+	int percent_of_peak = 0;
+	int k = 0;
+	int thresh = 30;
+
+	calcHist(&input_image, 1, 0, Mat(), hist, 1, &hist_size, &hist_range, uniform, accumulate );
+
+	for( int i = 1; i < hist_size; i++ ) {
+		if (cvRound(hist.at<float>(i)) > hist_peak_val) {
+			hist_peak_val = cvRound(hist.at<float>(i));
+			hist_peak = i;
+		}
+	}
+
+	percent_of_peak = (int)((float)hist_peak_val * percent_peak / 100.0);
+	k = hist_peak;
+	while(cvRound(hist.at<float>(k)) > percent_of_peak)
+		k++;
+	thresh = k;
+	threshold(input_image, threshold_image, thresh, 255, THRESH_BINARY);
+
+  if(debugMode){
+  	//credit: http://docs.opencv.org/2.4/doc/tutorials/imgproc/histograms/histogram_calculation/histogram_calculation.html
+  	int hist_w = 512; int hist_h = 400;
+	  int bin_w = cvRound( (double) hist_w/hist_size );
+	  Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+	  normalize(hist, hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+	  for( int i = 1; i < hist_size; i++ ) {
+	      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(hist.at<float>(i-1)) ) ,
+	                       Point( bin_w*(i), hist_h - cvRound(hist.at<float>(i)) ),
+	                       Scalar( 255, 0, 0), 2, 8, 0  );
+	  }
+
+		namedWindow("Histogram", CV_WINDOW_NORMAL);
+  	imshow("Histogram", histImage );
+		resizeWindow("Histogram", 512, 384);
+	}
+	else {
+		destroyWindow("Histogram");
+	}
+
+} //dynamic_threshold
+
 //@searches through list of old object to find match for the new one
 //@returns pointer to the old one
+//TODO make more efficient
 Object* find_previous_object(vector<Object> &old_objs, Object &curr_obj) {
 	double dist, min_dist = -1;
 	Object *prev_obj = NULL;
 	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
 		dist = it_old_obj->find_distance_sqd(curr_obj);
-		if(dist <= MAX_DIST_SQD) {
-			if( (min_dist == -1) || (dist < min_dist) ) {
-				min_dist = dist;
-				prev_obj = &(*it_old_obj);
-			}
+		if( (dist <= MAX_DIST_SQD) && ((min_dist == -1) || (dist < min_dist)) ) {
+			min_dist = dist;
+			prev_obj = &(*it_old_obj);
 		}
 	}
 	return prev_obj;
@@ -509,6 +575,7 @@ void get_settings_inline(int argc, char** argv, string& vid_name, string& back_n
 }
 
 //@read file to get  proper settings and file names
+//TODO dynamic threshold setting
 void get_settings_file(int argc, char** argv, string& vid_name, string& back_name, char& bs_type) {
 	string next_line;
 	int input_cnt = 0;
@@ -623,8 +690,8 @@ void draw_centers(vector<Object> &objects, Mat &display) {
 	Point2d temp_pt;
 	for(unsigned j = 0; j < objects.size(); j++) {
 		objects[j].get_center(temp_pt);
-	  // circle( display, temp_pt, 5, Scalar( 0, 0, 255 ), 2, 1 );
-	  circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 0, 255 ), 2, 1 );
+	  circle( display, temp_pt, 5, Scalar( 0, 0, 255 ), 2, 1 );
+	  //circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 255, 255 ), 2, 1 );
 	  putText(display,"Object: " + int_to_str(objects[j].get_id()), temp_pt, 1, 1, Scalar(255,0,0), 2);
 	}
 }
