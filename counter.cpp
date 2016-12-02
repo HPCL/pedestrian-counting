@@ -324,8 +324,8 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 	blur(thresholdImage, blurImage, Size(BLUR_SIZE_2, BLUR_SIZE_2));
 	//TODO paramertize %
 	//TODO figure out if this is actually better
-	dynamic_threshold(blurImage, thresholdImage, 0.5, debugMode);
-	//threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
+	//dynamic_threshold(blurImage, thresholdImage, 0.5, debugMode);
+	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
 	if(debugMode){
 		namedWindow("Blur Image", CV_WINDOW_NORMAL);
@@ -506,15 +506,16 @@ void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &coun
 		case 'R':
 			curr_obj.set_is_counted();
 			count_LR++;
-			// cout << "objects moving Left to Right: " << count_LR << endl;
+			cout << "object moving Left to Right id = " << curr_obj.get_id() << endl;
 			break;
 		case 'L':
 			curr_obj.set_is_counted();
 			count_RL++;
-			// cout << "objects moving Right to Left: " << count_RL << endl;
+			cout << "object moving Right to Left id = " << curr_obj.get_id() << endl;
 			break;
-		} //switch
-	} //if counted
+		//default case (implied) - if it isn't R or L dont do anything
+		} 
+	} 
 }
 
 //@checks if the center is crossed
