@@ -24,6 +24,8 @@ public:
   bool open();
   // Get next frame
   bool read(Mat& frame);
+  // apply get funtion for VideoCapture
+  double get(int prop_id);
   // Release input
   void release();
 private:

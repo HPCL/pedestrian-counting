@@ -46,9 +46,12 @@
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
+#include <time.h>
 #include "object.h"
 #include "useful_functions.h"
 #include "image_input.h"
+
+#define REMOTE 1 == 1
 
 using namespace std;
 using namespace cv;
@@ -62,6 +65,10 @@ static int SENSITIVITY_VALUE_2 = 50;
 static int BLUR_SIZE_1 = 200;
 static int BLUR_SIZE_2 = 200;
 static double MIN_OBJ_AREA = 1000;
+
+//#if REMOTE
+VideoWriter* out_video; 
+//#endif
 
 void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back);
 void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
@@ -127,12 +134,27 @@ int main(int argc, char** argv){
 	if(use_static_back)
 		set_background(back_name, background_is_video, grayBackground, use_static_back);
 
-	namedWindow("Frame1", CV_WINDOW_NORMAL);
+	success = capture->open();
+	
+	if(REMOTE) {
+	  Size S =  Size((int) capture->get(CV_CAP_PROP_FRAME_WIDTH), (int) capture->get(CV_CAP_PROP_FRAME_HEIGHT));
+	  int ex = VideoWriter::fourcc('X','2','6','4');		
+	  // out_video = new VideoWriter("frame1.avi",  ex, capture->get(CV_CAP_PROP_FPS), S, false);
+	 //  out_video->open("frame1.avi",  ex, capture->get(CV_CAP_PROP_FPS), S, false);
+		out_video = new VideoWriter("frame1.h264",  ex, 4.0, S);
+	  // out_video->open("frame1.avi",  -1, 4.0, S);
+	  if(!out_video->isOpened()) {
+	  	cout << "ERROR: video writer didn't open" << endl;
+			getchar();
+			exit(1);
+	  }
+  } else {
+		namedWindow("Frame1", CV_WINDOW_NORMAL);
+	}
 
 	//TODO we won't need this loop for live streaming
 	while(1){
 
-		success = capture->open();
 		if(!success){
 			cout<<"ERROR ACQUIRING VIDEO FEED\n";
 			getchar();
@@ -150,6 +172,12 @@ int main(int argc, char** argv){
 		cout << "Next id for object (total id'd): " << next_id << endl;
 		cout << "objects moving Left to Right:    " << count_LR << endl;
 		cout << "objects moving Right to Left:    " << count_RL << endl;
+
+		if(REMOTE)
+			break;
+	
+		success = capture->open();
+
 	} // outer while loop (infinite)
 
 	return 0;
@@ -179,6 +207,10 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 	bool pause = false;
 	bool success = false;
 	bool loop_switch = true;
+
+	if (REMOTE) {
+		trackingEnabled =  true;
+	}
 
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
@@ -211,11 +243,16 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 		if(trackingEnabled) {
 			search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
 		}
+		if(REMOTE) {
+			out_video->set(CAP_PROP_FRAME_WIDTH, frame2.size().width);
+			out_video->set(CAP_PROP_FRAME_HEIGHT , frame2.size().height);
+	    out_video->write(frame2);
+    } else {
+			imshow("Frame1",frame2);
+			resizeWindow("Frame1", 512, 384);
+			interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
+		}
 
-		imshow("Frame1",frame2);
-		resizeWindow("Frame1", 512, 384);
-
-		interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
 
 		if(!use_static_back) {
 			frame2.copyTo(frame1);
@@ -223,8 +260,8 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 		}
 		success = capture->read(frame2);
 		loop_switch = !loop_switch;
-	} // inner while loop
-}
+	} // while
+} // track with non-adaptive BS
 
 //@compares two grayscale images using simple background sutraction
 //	also displays the stages if requested
@@ -269,6 +306,14 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 	bool success = false;
 	bool loop_switch = true;
 
+	int frames = 1;
+	double tot_time = 0;
+	clock_t start_t;
+
+	if (REMOTE) {
+		trackingEnabled =  true;
+	}
+
 	Ptr<BackgroundSubtractorMOG2> subtractor = createBackgroundSubtractorMOG2();
 	Mat frame, image;
 	Mat thresholdImage;
@@ -282,6 +327,7 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 	}
 
 	while( success ) {
+		start_t = clock();
 		image = frame.clone();
 		do_adaptive_BS(subtractor, image, debugMode, thresholdImage);
 
@@ -289,14 +335,25 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 			search_for_movement( thresholdImage, frame, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
 		}
 
-		imshow("Frame1",frame);
-		resizeWindow("Frame1", 512, 384);
+		if(REMOTE) {
+			out_video->set(CAP_PROP_FRAME_WIDTH, frame.size().width);
+			out_video->set(CAP_PROP_FRAME_HEIGHT , frame.size().height);
+	    out_video->write(frame);
+    } else {
+			imshow("Frame1",frame);
+			resizeWindow("Frame1", 512, 384);
+			interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
+		}
 
-		interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
 
 		success = capture->read(frame);
 		loop_switch = !loop_switch;
+		tot_time += double(clock() - start_t ) /  CLOCKS_PER_SEC;
+		frames++;
 	} 
+	cout << "Time    = " << tot_time << endl;
+	cout << "Frames  = " << frames << endl;
+	cout << "t per f = " << tot_time / (double)frames << endl;
 }
 
 //@finds movement blobs based on GMM background subtraction
@@ -631,6 +688,8 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 
 //@interpret keyboard input for runtime options
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause) {
+	cout << endl << "input: " << c;
+	cout << endl << "input: " << (int)c;
 	char c2 = 'x';
 	bool wait = pause;
 	switch(c){

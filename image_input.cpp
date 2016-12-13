@@ -37,6 +37,10 @@ bool ImageInput::read(Mat& frame) {
   }
 }
 
+double ImageInput::get(int prop_id){
+  return vid_capture.get(prop_id);
+}
+
 void ImageInput::release() {
   if (isLive) {
     rasp_cam.release();
