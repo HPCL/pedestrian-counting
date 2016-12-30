@@ -2,8 +2,12 @@
 a program to count pedestrians and bikers with a raspberry pi and OpenCV
 
 ## TODO
+  * clean up code
+    * output class, tracker class 
+    * put all bounding box stuff in obj class
   * accurate counting
     * distance error?
+    * discretization
   * test live stream option
   * get more test videos
 

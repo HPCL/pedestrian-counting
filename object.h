@@ -24,7 +24,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
 
- * If by some miricale you find this software useful, thanks are accepted in
+ * If by some miracle you find this software useful, thanks are accepted in
  * the form of chocolate or introductions to potential employers.
 
  */
@@ -34,6 +34,7 @@
 
 
 #include <opencv/cv.hpp>
+#include "opencv2/core.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -74,6 +75,8 @@ public:
   void set_id(int new_id);
   //@marks objects as counted (or input false to unmark)
   void set_is_counted(bool new_is_counted = true);
+  //@sets box to input
+  void set_box(Rect2d &new_box);
 
   //@copies center to out_center
   void get_center(Point2d &out_center) const;
@@ -81,12 +84,15 @@ public:
   int  get_id() const;
   //@returns is_counted
   bool get_is_counted() const;
+  //@copies box to out_box
+  void set_box(Rect2d &out_box) const;
 
 
 private:
   Point2d center;       // point that indicates object center
   int     id;           // object id; -1 means none assigned yet
   bool    is_counted;   // if the object has been counted
+  Rect2d  box;          // bounding box for object
 };
 
 #endif

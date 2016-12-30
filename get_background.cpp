@@ -24,7 +24,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
 
- * If by some miricale you find this software useful, thanks are accepted in
+ * If by some miracle you find this software useful, thanks are accepted in
  * the form of chocolate or introductions to potential employers.
 
  */

@@ -32,7 +32,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
 
- * If by some miricale you find this software useful, thanks are accepted in
+ * If by some miracle you find this software useful, thanks are accepted in
  * the form of chocolate or introductions to potential employers.
 
  */
@@ -83,7 +83,8 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 												vector<Object> &objects_0, vector<Object> &objects_1);
 void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_peak, bool debugMode);
 
-Object* find_previous_object(vector<Object> &old_objs, Object &curr_obj);
+Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj);
+Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj);
 void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &count_LR, int &count_RL);
 char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
 char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle);
@@ -100,11 +101,11 @@ void show_help();
 int main(int argc, char** argv){
 
 	//TODO combine static back and bs type?
-	bool use_static_back = false;		  // use a static image for background
+	bool use_static_back = false;		   // use a static image for background
 	bool background_is_video = true; 	// obtain static back from video
-	bool success = false;							// boolean set when image capture works
-	char bs_type = 'N';								// back subtraction algo 'M' for MOG2, non-adaptive is default
-	double next_id = 0;								// the next id to use
+	bool success = false;					// boolean set when image capture works
+	char bs_type = 'N';						// back subtraction algo 'M' for MOG2, non-adaptive is default
+	double next_id = 0;						// the next id to use
 	int count_LR = 0, count_RL = 0;		// counts of objects
 
 	Mat grayBackground;
@@ -140,7 +141,7 @@ int main(int argc, char** argv){
 	  Size S =  Size((int) capture->get(CV_CAP_PROP_FRAME_WIDTH), (int) capture->get(CV_CAP_PROP_FRAME_HEIGHT));
 	  int ex = VideoWriter::fourcc('X','2','6','4');		
 	  // out_video = new VideoWriter("frame1.avi",  ex, capture->get(CV_CAP_PROP_FPS), S, false);
-	 //  out_video->open("frame1.avi",  ex, capture->get(CV_CAP_PROP_FPS), S, false);
+	  //  out_video->open("frame1.avi",  ex, capture->get(CV_CAP_PROP_FPS), S, false);
 		out_video = new VideoWriter("frame1.h264",  ex, 4.0, S);
 	  // out_video->open("frame1.avi",  -1, 4.0, S);
 	  if(!out_video->isOpened()) {
@@ -247,7 +248,7 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 			out_video->set(CAP_PROP_FRAME_WIDTH, frame2.size().width);
 			out_video->set(CAP_PROP_FRAME_HEIGHT , frame2.size().height);
 	    out_video->write(frame2);
-    } else {
+		} else {
 			imshow("Frame1",frame2);
 			resizeWindow("Frame1", 512, 384);
 			interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
@@ -430,7 +431,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_0.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_1.size() > 0) {
-						prev_obj = find_previous_object(objects_1, *objects_0.rbegin());
+						prev_obj = find_previous_object_dist(objects_1, *objects_0.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_0.rbegin()->set_id(next_id++);
@@ -457,7 +458,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_1.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_0.size() > 0) {
-						prev_obj = find_previous_object(objects_0, *objects_1.rbegin());
+						prev_obj = find_previous_object_dist(objects_0, *objects_1.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_1.rbegin()->set_id(next_id++);
@@ -536,15 +537,32 @@ void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_pea
 
 } //dynamic_threshold
 
-//@searches through list of old object to find match for the new one
+//@searches through list of old object to find match for the new one based on distance
 //@returns pointer to the old one
 //TODO make more efficient
-Object* find_previous_object(vector<Object> &old_objs, Object &curr_obj) {
-	double dist, min_dist = -1;
+Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj) {
+	double dist, min_dist = -1.0;
 	Object *prev_obj = NULL;
 	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
 		dist = it_old_obj->find_distance_sqd(curr_obj);
-		if( (dist <= MAX_DIST_SQD) && ((min_dist == -1) || (dist < min_dist)) ) {
+		if( (dist <= MAX_DIST_SQD) && ((min_dist < 0) || (dist < min_dist)) ) {
+			min_dist = dist;
+			prev_obj = &(*it_old_obj);
+		}
+	}
+	return p
+	rev_obj;
+}
+
+//@searches through list of old object to find match for the new one based on object overlap
+//@returns pointer to the old one
+//TODO make more efficient
+Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj) {
+	double dist, min_dist = -1.0;
+	Object *prev_obj = NULL;
+	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
+		dist = it_old_obj->find_distance_sqd(curr_obj);
+		if( (dist <= MAX_DIST_SQD) && ((min_dist < 0) || (dist < min_dist)) ) {
 			min_dist = dist;
 			prev_obj = &(*it_old_obj);
 		}
@@ -633,7 +651,7 @@ void get_settings_inline(int argc, char** argv, string& vid_name, string& back_n
 }
 
 //@read file to get  proper settings and file names
-//TODO dynamic threshold setting
+//TODO dynamic threshold setting (maybe not)
 void get_settings_file(int argc, char** argv, string& vid_name, string& back_name, char& bs_type) {
 	string next_line;
 	int input_cnt = 0;
@@ -683,7 +701,6 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 		getchar();
 		exit(1);
 	}
-
 }
 
 //@interpret keyboard input for runtime options

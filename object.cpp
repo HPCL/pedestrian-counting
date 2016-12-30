@@ -24,7 +24,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
 
- * If by some miricale you find this software useful, thanks are accepted in
+ * If by some miracle you find this software useful, thanks are accepted in
  * the form of chocolate or introductions to potential employers.
 
  */
@@ -98,6 +98,9 @@ void Object::set_is_counted(bool new_is_counted /* = true*/){
   is_counted = new_is_counted;
 }
 
+void Object::set_box(Rect2d &new_box) {
+  box = Rect2d(new_box);
+}
 
 /*************************** Getters ***************************/
 
@@ -111,4 +114,8 @@ int  Object::get_id() const {
 
 bool Object::get_is_counted() const {
   return is_counted;
+}
+
+void Object::get_box(Rect2d &out_box) const {
+  out_box = Rect2d(box);
 }
