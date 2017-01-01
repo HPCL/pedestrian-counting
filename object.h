@@ -71,7 +71,7 @@ public:
   bool overlaps(const Object &other_object) const;
   //@calculates area of overlap
   //@credit Sean Gravelle 
-  bool get_overlap_area(const Object &other_object) const;
+  bool find_overlap_area(const Object &other_object) const;
 
   //@sets center to input
   void set_center(Point2d &new_center);

@@ -46,7 +46,7 @@ Object::Object(const vector<Point> &contour) {
   center = Point2d(temp_moment.m10/temp_moment.m00 , temp_moment.m01/temp_moment.m00);
   id = -1;
   is_counted = false;
-  //TODO bounding box
+  box = boundingRect(contour);
 }
 
 Object::Object(const Point2d &new_center, int new_id, Rect2d &new_box) {
@@ -84,31 +84,20 @@ double Object::find_distance_sqd(const Object &other_object) const {
 
 bool Object::overlaps(const Object &other_object) const {
   Rect2d other_box;
-  bool x_overlap, y_overlap;
+  double area;
 
   other_object.get_box(other_box);
-  x_overlap = ( (box.x < other_box.x) && ((box.x + box.width) > other_box.x) ) ||
-              ( (box.x < other_box.x + other_box.width) && (box.x > other_box.x) );
-  y_overlap = ( (box.y > other_box.y) && ((box.y - box.height) < other_box.y) ) ||
-              ( (box.y < other_box.y + other_box.height) && (box.x > other_box.y) );
+  area = (box & other_box).area();
 
-  return x_overlap && y_overlap;
+  return (area > 0.0);
 }
 
 
-bool Object::get_overlap_area(const Object &other_object) const {
+bool Object::find_overlap_area(const Object &other_object) const {
   Rect2d other_box;
-  double ux, uy, bx, by;
-
-  if (!overlaps(other_object)) return 0;
 
   other_object.get_box(other_box);
-  ux = max(box.x, other_box.x);
-  uy = min(box.y, other_box.y);
-  bx = min(box.x + box.width, other_box.x + other_box.width);
-  by = max(box.y - box.height, other_box.y - other_box.height);
-
-  return (ux - bx) * (by - uy);
+  return (box & other_box).area();
 }
 
 

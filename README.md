@@ -8,6 +8,8 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
   * accurate counting
     * distance error?
     * discretization
+    * overlap
+  * add more options to the settings
   * test live stream option
   * get more test videos
 

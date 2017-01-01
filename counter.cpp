@@ -431,6 +431,8 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_0.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_1.size() > 0) {
+						//TODO parameterize
+						// prev_obj = find_previous_object_overlap(objects_1, *objects_0.rbegin());
 						prev_obj = find_previous_object_dist(objects_1, *objects_0.rbegin());
 					}
 					if(prev_obj == NULL) {
@@ -458,6 +460,8 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_1.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_0.size() > 0) {
+						//TODO parameterize
+						// prev_obj = find_previous_object_overlap(objects_0, *objects_1.rbegin());
 						prev_obj = find_previous_object_dist(objects_0, *objects_1.rbegin());
 					}
 					if(prev_obj == NULL) {
@@ -557,12 +561,12 @@ Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj) {
 //@returns pointer to the old one
 //TODO make more efficient
 Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj) {
-	double dist, min_dist = -1.0;
+	double area, max_area = 0.0;
 	Object *prev_obj = NULL;
 	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
-		dist = it_old_obj->find_distance_sqd(curr_obj);
-		if( (dist <= MAX_DIST_SQD) && ((min_dist < 0) || (dist < min_dist)) ) {
-			min_dist = dist;
+		area = it_old_obj->find_overlap_area(curr_obj);
+		if( area > max_area ) {
+			max_area = area;
 			prev_obj = &(*it_old_obj);
 		}
 	}
@@ -651,6 +655,7 @@ void get_settings_inline(int argc, char** argv, string& vid_name, string& back_n
 
 //@read file to get  proper settings and file names
 //TODO dynamic threshold setting (maybe not)
+//TODO tracking algo
 void get_settings_file(int argc, char** argv, string& vid_name, string& back_name, char& bs_type) {
 	string next_line;
 	int input_cnt = 0;
