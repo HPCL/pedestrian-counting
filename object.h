@@ -52,20 +52,26 @@ public:
   Object(const vector<Point> &contour);
   //@creates new object
   //@post is_counted set to false, others set to inputs
-  Object(const Point2d &new_center, int new_id);
+  Object(const Point2d &new_center, int new_id, Rect2d &new_box);
   //@copies input object to a new one
   Object(const Object &other);
   //@default destructor
   ~Object();
 
-  //@canlculate the distance between the center and the input point
+  //@calculate the distance between the center and the input point
   //@pre other center is defined
   //@returns the euclidian distance ^2 (because sqrt is $$$)
   double find_distance_sqd(const Point2d &other_center) const;
-  //@canlculate the distance between the center and the center of the input
+  //@calculate the distance between the center and the center of the input
   //@pre center of other_object is defined
   //@returns the euclidian distance ^2 (because sqrt is $$$)
-  double find_distance_sqd( const Object &other_object) const;
+  double find_distance_sqd(const Object &other_object) const;
+  
+  //@checks if two objects overlap
+  bool overlaps(const Object &other_object) const;
+  //@calculates area of overlap
+  //@credit Sean Gravelle 
+  bool get_overlap_area(const Object &other_object) const;
 
   //@sets center to input
   void set_center(Point2d &new_center);
@@ -85,14 +91,14 @@ public:
   //@returns is_counted
   bool get_is_counted() const;
   //@copies box to out_box
-  void set_box(Rect2d &out_box) const;
+  void get_box(Rect2d &out_box) const;
 
 
 private:
   Point2d center;       // point that indicates object center
   int     id;           // object id; -1 means none assigned yet
   bool    is_counted;   // if the object has been counted
-  Rect2d  box;          // bounding box for object
+  Rect2d  box;          // bounding box for object (x, y, width, height are double)
 };
 
 #endif

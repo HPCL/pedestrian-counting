@@ -547,11 +547,10 @@ Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj) {
 		dist = it_old_obj->find_distance_sqd(curr_obj);
 		if( (dist <= MAX_DIST_SQD) && ((min_dist < 0) || (dist < min_dist)) ) {
 			min_dist = dist;
-			prev_obj = &(*it_old_obj);
+			prev_obj = &(*it_old_obj); 
 		}
 	}
-	return p
-	rev_obj;
+	return prev_obj;
 }
 
 //@searches through list of old object to find match for the new one based on object overlap
