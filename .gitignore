@@ -9,6 +9,7 @@
 *.jpg
 *.png
 *.h264
+*.mp4
 
 # other
 *.dat

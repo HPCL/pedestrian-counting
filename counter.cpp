@@ -9,7 +9,7 @@
  * Dani White
  * white.dani.m@gmail.com
 
- * Much of this code is based on helpful tutorials available here:
+ * Some of this code is based on helpful tutorials available here:
  * http://docs.opencv.org/3.1.0/d5/d07/tutorial_multitracker.html#gsc.tab=0
  * https://www.youtube.com/user/khounslow/featured
 
