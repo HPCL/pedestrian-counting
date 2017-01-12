@@ -67,6 +67,10 @@ public:
   void close_debug_frames(Mat** frame);
   void close_index_frame(Mat &frame, int ind);
 
+  //@getters (no setters only initial setup)
+  bool get_to_file() const;
+  int  get_video_count() const;
+
 private:
   bool to_file;  // whether the output should be written to file or screen
                  // note: cannot be changed after initial setup

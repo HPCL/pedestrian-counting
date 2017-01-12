@@ -140,10 +140,9 @@ int main(int argc, char** argv){
 	if(REMOTE) {
 	  Size S =  Size((int) capture->get(CV_CAP_PROP_FRAME_WIDTH), (int) capture->get(CV_CAP_PROP_FRAME_HEIGHT));
 	  int ex = VideoWriter::fourcc('X','2','6','4');		
-	  // out_video = new VideoWriter("frame1.avi",  ex, capture->get(CV_CAP_PROP_FPS), S, false);
-	  //  out_video->open("frame1.avi",  ex, capture->get(CV_CAP_PROP_FPS), S, false);
-		out_video = new VideoWriter("frame1.h264",  ex, 4.0, S);
-	  // out_video->open("frame1.avi",  -1, 4.0, S);
+		out_video = new VideoWriter("frame1.h264",  ex, 4.0, S);	
+		// int ex = VideoWriter::fourcc('m','p','4','v');		
+		// out_video = new VideoWriter("frame1.mp4",  ex, 4.0, S);
 	  if(!out_video->isOpened()) {
 	  	cout << "ERROR: video writer didn't open" << endl;
 			getchar();
