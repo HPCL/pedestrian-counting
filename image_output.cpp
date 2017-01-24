@@ -44,31 +44,60 @@ ImageOutput::ImageOutput(){
 }
 
 //@constructor with specific values
-ImageOutput::ImageOutput(new_to_file, VideoWriter** new_video_list, char** new_name_list, int new_video_count){
+ImageOutput::ImageOutput(new_to_file, char** new_name_list, Size new_size, int new_video_count){
   to_file     = new_to_file;
-  video_list  = new_video_list; //TODO create these in class
+  video_list  = (VideoWriter **)calloc(new_video_count, sizeof(VideoWriter*)); //TODO create these in class
   name_list   = new_name_list;
+  frame_size  = new_size;
   video_count = new_video_count;
 }
 
 //@destructor
 ImageOutput::~ImageOutput(){
-  //TODO we're probably going to have to destry the video writers
+  //TODO we're probably going to have to destroy the video writers
 }
 
 
-//@updates data members
-void ImageOutput::setup(new_to_file, VideoWriter** new_video_list, char** new_name_list, int new_video_count){
+//@updates data members and setup video files if neceessary
+//@params
+//@return true if success false for failure
+bool ImageOutput::setup(new_to_file, char** new_name_list, Size new_size, int new_video_count){
   //TODO close and destroy existing videos
   to_file     = new_to_file;
-  video_list  = new_video_list; //TODO create these in class
+  video_list  = (VideoWriter **)calloc(new_video_count, sizeof(VideoWriter*)); //TODO create these in class
   name_list   = new_name_list;
   video_count = new_video_count;
+
+  //TODO make a func out of this?
+  if (to_file) {
+    int ex = VideoWriter::fourcc('X','2','6','4');    //TODO make more general?
+
+    for (int i = 0; i < video_count; i++) {
+      video_list[i] = new VideoWriter(name_list[i] + ".h264",  ex, 4.0, frame_size);  
+      if(!video_list[i]->isOpened()) {
+        cout << "ERROR: video writer didn't open" << endl;
+        getchar();
+        return false;
+      }
+    }
+  } else {
+    namedWindow(name_list[i], CV_WINDOW_NORMAL);
+  }
+
+  return true;
 }
 
 //@outputs the requested frames
 void ImageOutput::output_track_frame(Mat &frame){
-
+  if(to_file) {
+    video_list[0]->set(CAP_PROP_FRAME_WIDTH, frame.size().width);
+    video_list[0]->set(CAP_PROP_FRAME_HEIGHT , frame.size().height);
+    video_list[0]->write(frame);
+  } else {
+    imshow("Frame1",frame);
+    resizeWindow("Frame1", WIN_HIEGHT, WIN_LENGTH);
+    interpret_input(waitKey(10), debugMode, trackingEnabled, pause); //TODO return char
+  }
 }
 
 void ImageOutput::output_debug_frames(Mat** frame){

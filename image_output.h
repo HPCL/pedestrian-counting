@@ -45,6 +45,10 @@
 using namespace cv;
 using namespace std;
 
+//TODO stop being lazy and don't hardcode this stuff
+#define WIN_HIEGHT = 384
+#define WIN_LENGTH = 512
+
 class ImageOutput {
 public:
   //@constructor with default values
@@ -54,8 +58,10 @@ public:
   //@destructor
   ~ImageOutput();
 
-  //@updates data members
-  void setup(new_to_file, VideoWriter** new_video_list, char** new_name_list, int video_count);
+  //@updates data members and setup video files if neceessary
+  //@params
+  //@return true if success false for failure
+  bool setup(new_to_file, VideoWriter** new_video_list, char** new_name_list, int video_count);
 
   //@outputs the requested frames
   void output_track_frame(Mat &frame);
@@ -76,8 +82,9 @@ private:
                  // note: cannot be changed after initial setup
 
   VideoWriter** video_list;  // list of video files for output
-  char**        name_list;   // list of video names
+  char**        name_list;   // list of video names; if file, .h264 will be added
                              // note: first in list is main (tracking) video
+  Size          frame_size;  // size for output frames, only needed if to_file
   int           video_count; // how many videos there are
 };
 
