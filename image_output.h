@@ -46,32 +46,32 @@ using namespace cv;
 using namespace std;
 
 //TODO stop being lazy and don't hardcode this stuff
-#define WIN_HIEGHT = 384
-#define WIN_LENGTH = 512
+#define WIN_HIEGHT 384
+#define WIN_LENGTH 512
 
 class ImageOutput {
 public:
   //@constructor with default values
   ImageOutput();
   //@constructor with specific values
-  ImageOutput(new_to_file, VideoWriter** new_video_list, char** new_name_list, int video_count);
+  ImageOutput(bool new_to_file, char** new_name_list, Size new_size, int new_video_count);
   //@destructor
   ~ImageOutput();
 
   //@updates data members and setup video files if neceessary
   //@params
   //@return true if success false for failure
-  bool setup(new_to_file, VideoWriter** new_video_list, char** new_name_list, int video_count);
+  bool setup(bool new_to_file, char** new_name_list, Size new_size, int new_video_count);
 
   //@outputs the requested frames
-  void output_track_frame(Mat &frame);
-  void output_debug_frames(Mat** frame);
-  void output_index_frame(Mat &frame, int ind);
+  //@track returns the result of a wait key
+  //@usage output_trackframe should be called shortly after any others
+  char output_track_frame(Mat &frame);
+  void output_debug_frames(Mat** frames);
 
   //@closes output
   void close_track_frame(Mat &frame);
   void close_debug_frames(Mat** frame);
-  void close_index_frame(Mat &frame, int ind);
 
   //@getters (no setters only initial setup)
   bool get_to_file() const;

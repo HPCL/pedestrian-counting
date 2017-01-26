@@ -21,14 +21,18 @@ useful_functions.o: useful_functions.cpp useful_functions.h
 image_input.o: image_input.cpp image_input.h
 		$(CC) $(OCV_PATH) -c image_input.cpp $(ALL_LIBS)
 
+image_output.o: image_output.cpp image_output.h
+		$(CC) $(OCV_PATH) -c image_output.cpp $(ALL_LIBS)
+
 counter: counter.cpp
 		make useful_functions.o
 		make image_input.o
+		make image_output.o
 	  make object.o
-		$(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o -o counter.out $(ALL_LIBS)
+		$(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o -o counter.out $(ALL_LIBS)
 
 counter_gdb:
-	  $(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o -g -o counter.out $(ALL_LIBS) 
+	  $(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o -g -o counter.out $(ALL_LIBS) 
 
 get_background: get_background.cpp
 		make useful_functions.o
