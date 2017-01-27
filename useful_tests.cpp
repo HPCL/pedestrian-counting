@@ -1,5 +1,6 @@
-/* useful_functions.cpp
- * various functions that are useful to the project but don't belong anywhere in particular
+/* useful_tests.cpp
+ * testing for the useful functions
+ * very much a wrok in progress
  
  * Brian J Gravelle
  * ix.cs.uoregon.edu/~gravelle
@@ -29,23 +30,23 @@
 
  */
 
-#ifndef USEFUL_FUNCTIONS_H
-#define USEFUL_FUNCTIONS_H
-
-#include <opencv/cv.hpp>
-//#include <opencv/highgui.h>
-#include <stdio.h>
-#include <iostream>
-#include <stdlib.h>
+#include "useful_functions.h"
 
 using namespace std;
 using namespace cv;
 
-int char_to_int(char* c);
-int str_to_int(string s);
-string int_to_str(int i);
-string char_cat(char* first, char* second);
-void display_window(string name, Mat& img, bool wait = false);
-void get_background(string vid_name, Mat& avg_frame);
+int main(int argc, char** argv){
 
-#endif
+	cout << endl << endl << "*********** TESTING USEFUL FUNCTIONS ***********" << endl << endl;
+
+	char* f = "hello";
+	char* s = " world";
+	string o;
+	o = char_cat(f, s);
+	cout << "Concatinating '" << f << "' with '" << s << endl;
+	cout << "Expected: '" << f << s << "'" << endl;
+  cout << "Actual:   '" << o << "'" << endl;
+
+	cout << endl << endl << "***************** DONE TESTING *****************" << endl << endl;
+
+}

@@ -18,11 +18,15 @@ object.o: object.cpp object.h
 useful_functions.o: useful_functions.cpp useful_functions.h
 		$(CC) $(OCV_PATH) -c useful_functions.cpp $(ALL_LIBS)
 
+useful_tests: useful_functions.cpp useful_tests.cpp useful_functions.h
+		make useful_functions.o
+		$(CC) $(OCV_PATH) useful_tests.cpp useful_functions.o -o useful_tests.out $(ALL_LIBS)
+
 image_input.o: image_input.cpp image_input.h
 		$(CC) $(OCV_PATH) -c image_input.cpp $(ALL_LIBS)
 
 image_output.o: image_output.cpp image_output.h
-		$(CC) $(OCV_PATH) -c image_output.cpp $(ALL_LIBS)
+		$(CC) $(OCV_PATH) -c image_output.cpp useful_functions.o $(ALL_LIBS)
 
 counter: counter.cpp
 		make useful_functions.o

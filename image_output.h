@@ -40,6 +40,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
+#include "useful_functions.h"
 
 
 using namespace cv;

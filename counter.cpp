@@ -50,6 +50,7 @@
 #include "object.h"
 #include "useful_functions.h"
 #include "image_input.h"
+#include "image_output.h"
 
 #define REMOTE 1 == 1
 
@@ -101,11 +102,11 @@ void show_help();
 int main(int argc, char** argv){
 
 	//TODO combine static back and bs type?
-	bool use_static_back = false;		   // use a static image for background
+	bool use_static_back = false;		  // use a static image for background
 	bool background_is_video = true; 	// obtain static back from video
-	bool success = false;					// boolean set when image capture works
-	char bs_type = 'N';						// back subtraction algo 'M' for MOG2, non-adaptive is default
-	double next_id = 0;						// the next id to use
+	bool success = false;					    // boolean set when image capture works
+	char bs_type = 'N';						    // back subtraction algo 'M' for MOG2, non-adaptive is default
+	double next_id = 0;					    	// the next id to use
 	int count_LR = 0, count_RL = 0;		// counts of objects
 
 	Mat grayBackground;

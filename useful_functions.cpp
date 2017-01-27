@@ -61,6 +61,12 @@ string int_to_str(int i){
 	return ss.str();
 }
 
+//@concatonates char* to a string
+string char_cat(char* first, char* second) {
+	stringstream ss;
+	ss << first << second;
+	return ss.str();
+}
 
 //@displays window or crashes program
 void display_window(string name, Mat& img, bool wait /*= false*/) {

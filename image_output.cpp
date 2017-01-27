@@ -38,15 +38,15 @@ using namespace std;
 //@constructor with default values
 ImageOutput::ImageOutput(){
   to_file     = false;
-  name_list   = ['tracking_video', 'debugging_video'];
+  name_list   = {"tracking_video", "debugging_video"};
   video_count = 2;
-  video_list  = new (VideoWriter*)[video_count];
+  video_list  = new VideoWriter*[video_count];
 }
 
 //@constructor with specific values
 ImageOutput::ImageOutput(bool new_to_file, char** new_name_list, Size new_size, int new_video_count){
   to_file     = new_to_file;
-  video_list  = new (VideoWriter*)[video_count];
+  video_list  = new VideoWriter*[video_count];
   name_list   = new_name_list;
   frame_size  = new_size;
   video_count = new_video_count;
@@ -58,11 +58,14 @@ ImageOutput::~ImageOutput(){
     delete video_list[i];
   }
   delete[] video_list;
+  
 }
 
 
 //@updates data members and setup video files if neceessary
 //@params
+//@post if to_file all videoWriters are created or false in returned
+//
 //@return true if success false for failure
 bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, int new_video_count){
   //TODO close and destroy existing videos
@@ -70,13 +73,14 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
   video_list  = (VideoWriter **)calloc(new_video_count, sizeof(VideoWriter*)); //TODO create these in class
   name_list   = new_name_list;
   video_count = new_video_count;
+  char* file_ext = ".h264";
 
   //TODO make a func out of this?
   if (to_file) {
     int ex = VideoWriter::fourcc('X','2','6','4');    //TODO make more general?
 
     for (int i = 0; i < video_count; i++) {
-      video_list[i] = new VideoWriter(name_list[i] + ".h264",  ex, 4.0, frame_size);  
+      video_list[i] = new VideoWriter(char_cat(name_list[i], file_ext),  ex, 4.0, frame_size);  
       if(!video_list[i]->isOpened()) {
         cout << "ERROR: video writer didn't open" << endl;
         getchar();
@@ -84,7 +88,8 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
       }
     }
   } else {
-    namedWindow(name_list[i], CV_WINDOW_NORMAL);
+    namedWindow(name_list[0], CV_WINDOW_NORMAL);
+    //TODO check for success?
   }
 
   return true;
