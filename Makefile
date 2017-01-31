@@ -20,7 +20,7 @@ useful_functions.o: useful_functions.cpp useful_functions.h
 
 useful_tests: useful_functions.cpp useful_tests.cpp useful_functions.h
 		make useful_functions.o
-		$(CC) $(OCV_PATH) useful_tests.cpp useful_functions.o -o useful_tests.out $(ALL_LIBS)
+		$(CC) $(OCV_PATH) useful_tests.cpp useful_functions.o -g -o useful_tests.out $(ALL_LIBS)
 
 image_input.o: image_input.cpp image_input.h
 		$(CC) $(OCV_PATH) -c image_input.cpp $(ALL_LIBS)

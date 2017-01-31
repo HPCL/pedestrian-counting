@@ -35,17 +35,59 @@
 using namespace std;
 using namespace cv;
 
+void test_char_cat(){
+  char* f = (char*)"hello";
+  char* s = (char*)" world";
+  string o;
+
+  cout << "* * * * * testing char cat * * * * *" << endl;
+  
+  o = char_cat(f, s);
+  cout << "Concatinating '" << f << "' with '" << s << endl;
+  cout << "Expected: '" << f << s << "'" << endl;
+  cout << "Actual:   '" << o << "'" << endl;  
+}
+
+void test_char_copy(){
+  char** one_list    = new char*[2];
+  char** two_list    = NULL;
+  one_list[0] = (char*)"tracking_video";
+  one_list[1] = (char*)"debugging_video";
+
+  cout << "* * * * * testing copy char list * * * * *" << endl;
+
+  copy_char_list(one_list, 2, two_list);
+
+  if(two_list == NULL) {
+    cout << "ERROR second list is NULL" << endl;
+
+  } else if(two_list[0] == NULL) {
+    cout << "ERROR second list first string is NULL" << endl;
+
+  } else if(two_list[1] == NULL) {
+    cout << "ERROR second list second string is NULL" << endl;
+
+  } else {
+    cout << "Expected:" << endl;
+    cout << one_list[0] << endl;
+    cout << one_list[1] << endl;
+    cout << endl;
+    delete[] one_list;
+
+    cout << "Actual:" << endl;
+    cout << two_list[0] << endl;
+    cout << two_list[1] << endl;
+  }
+  
+  delete_char_list(two_list, 2);
+}
+
 int main(int argc, char** argv){
 
 	cout << endl << endl << "*********** TESTING USEFUL FUNCTIONS ***********" << endl << endl;
 
-	char* f = "hello";
-	char* s = " world";
-	string o;
-	o = char_cat(f, s);
-	cout << "Concatinating '" << f << "' with '" << s << endl;
-	cout << "Expected: '" << f << s << "'" << endl;
-  cout << "Actual:   '" << o << "'" << endl;
+  // test_char_cat();
+  test_char_copy();
 
 	cout << endl << endl << "***************** DONE TESTING *****************" << endl << endl;
 

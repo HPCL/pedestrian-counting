@@ -38,7 +38,9 @@ using namespace std;
 //@constructor with default values
 ImageOutput::ImageOutput(){
   to_file     = false;
-  name_list   = {"tracking_video", "debugging_video"};
+  name_list   = new char*[2];
+  name_list[0] = (char*)"tracking_video";
+  name_list[1] = (char*)"debugging_video";
   video_count = 2;
   video_list  = new VideoWriter*[video_count];
 }
@@ -47,7 +49,7 @@ ImageOutput::ImageOutput(){
 ImageOutput::ImageOutput(bool new_to_file, char** new_name_list, Size new_size, int new_video_count){
   to_file     = new_to_file;
   video_list  = new VideoWriter*[video_count];
-  name_list   = new_name_list;
+  name_list   = new_name_list; //TODO maybe don't do this
   frame_size  = new_size;
   video_count = new_video_count;
 }
@@ -57,15 +59,14 @@ ImageOutput::~ImageOutput(){
   for (int i = 0; i < video_count; i++) {
     delete video_list[i];
   }
-  delete[] video_list;
-  
+  delete[] video_list; 
+  delete_char_list(name_list, video_count);
 }
 
 
 //@updates data members and setup video files if neceessary
 //@params
 //@post if to_file all videoWriters are created or false in returned
-//
 //@return true if success false for failure
 bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, int new_video_count){
   //TODO close and destroy existing videos
@@ -73,7 +74,7 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
   video_list  = (VideoWriter **)calloc(new_video_count, sizeof(VideoWriter*)); //TODO create these in class
   name_list   = new_name_list;
   video_count = new_video_count;
-  char* file_ext = ".h264";
+  char* file_ext = (char*)".h264";
 
   //TODO make a func out of this?
   if (to_file) {
@@ -96,11 +97,13 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
 }
 
 //@outputs the requested frames
+//TODO make return determine success?
 char ImageOutput::output_track_frame(Mat &frame){
   if(to_file) {
     video_list[0]->set(CAP_PROP_FRAME_WIDTH, frame.size().width);
     video_list[0]->set(CAP_PROP_FRAME_HEIGHT , frame.size().height);
     video_list[0]->write(frame);
+    return 'x';
   } else {
     imshow(name_list[0],frame);
     resizeWindow(name_list[0], WIN_HIEGHT, WIN_LENGTH);
@@ -108,12 +111,24 @@ char ImageOutput::output_track_frame(Mat &frame){
   }
 }
  
-void ImageOutput::output_debug_frames(Mat** frames){
+bool ImageOutput::output_debug_frames(Mat** frames){
   for (int i = 1; i < video_count; i++) {
-    namedWindow(name_list[i], CV_WINDOW_NORMAL);
-    imshow(name_list[i], *(frames[i]);
-    resizeWindow(name_list[i], WIN_HIEGHT, WIN_LENGTH);
+    if(frames[i]->empty()) {
+      cout <<  "Could not open or find the image" << std::endl ;
+      return false;
+    }
+    
+    if(to_file) {
+      video_list[i]->set(CAP_PROP_FRAME_WIDTH, frames[i]->size().width);
+      video_list[i]->set(CAP_PROP_FRAME_HEIGHT , frames[i]->size().height);
+      video_list[i]->write(*frames[i]);
+    } else {
+      namedWindow(name_list[i], CV_WINDOW_NORMAL);
+      imshow(name_list[i], *(frames[i]));
+      resizeWindow(name_list[i], WIN_HIEGHT, WIN_LENGTH);
+    }
   }
+  return true;
 }
 
 

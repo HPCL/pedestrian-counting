@@ -114,6 +114,10 @@ int main(int argc, char** argv){
 	Mat thresholdImage;
 	ImageInput* capture;
 
+	name_list   = new char*[2]; //TODO i thinnk this gets deleted in the image output thing but that's going to have to change
+  name_list[0] = (char*)"tracking_video";
+  name_list[1] = (char*)"debugging_video";
+
 	string vid_name;
 	string back_name;
 
@@ -138,9 +142,12 @@ int main(int argc, char** argv){
 
 	success = capture->open();
 	
+	Size S =  Size((int) capture->get(CV_CAP_PROP_FRAME_WIDTH), (int) capture->get(CV_CAP_PROP_FRAME_HEIGHT));
+	vid_out = ImageOutput(bool new_to_file, char** new_name_list, Size new_size, int new_video_count);
+
+	//OUTPUT
 	if(REMOTE) {
-	  Size S =  Size((int) capture->get(CV_CAP_PROP_FRAME_WIDTH), (int) capture->get(CV_CAP_PROP_FRAME_HEIGHT));
-	  int ex = VideoWriter::fourcc('X','2','6','4');		
+	  nt ex = VideoWriter::fourcc('X','2','6','4');		
 		out_video = new VideoWriter("frame1.h264",  ex, 4.0, S);	
 		// int ex = VideoWriter::fourcc('m','p','4','v');		
 		// out_video = new VideoWriter("frame1.mp4",  ex, 4.0, S);
@@ -244,7 +251,7 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 		if(trackingEnabled) {
 			search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
 		}
-		if(REMOTE) {
+		if(REMOTE) { //OUTPUT
 			out_video->set(CAP_PROP_FRAME_WIDTH, frame2.size().width);
 			out_video->set(CAP_PROP_FRAME_HEIGHT , frame2.size().height);
 	    out_video->write(frame2);
@@ -272,7 +279,7 @@ void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &t
 	absdiff(grayImage1, grayImage2, differenceImage);
 	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
 
-	if(debugMode) {
+	if(debugMode) { //OUTPUT
 		namedWindow("Difference Image", CV_WINDOW_NORMAL);
 		imshow("Difference Image", differenceImage);
 		resizeWindow("Difference Image", 512, 384);
@@ -287,7 +294,7 @@ void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &t
 	blur(thresholdImage, blurImage, Size(BLUR_SIZE_1, BLUR_SIZE_1));
 	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
-	if(debugMode){
+	if(debugMode){ //OUTPUT
 		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
 		imshow("Final Threshold Image", thresholdImage);
 		resizeWindow("Final Threshold Image", 512, 384);
@@ -336,7 +343,7 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 			search_for_movement( thresholdImage, frame, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
 		}
 
-		if(REMOTE) {
+		if(REMOTE) { //OUTPUT
 			out_video->set(CAP_PROP_FRAME_WIDTH, frame.size().width);
 			out_video->set(CAP_PROP_FRAME_HEIGHT , frame.size().height);
 	    out_video->write(frame);
@@ -366,7 +373,7 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 	//blur(differenceImage, blurImage, Size(BLUR_SIZE_1, BLUR_SIZE_1));
 	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
 
-	if(debugMode) {
+	if(debugMode) { //OUTPUT
 		namedWindow("Difference Image", CV_WINDOW_NORMAL);
 		imshow("Difference Image", differenceImage);
 		resizeWindow("Difference Image", 512, 384);
@@ -385,7 +392,7 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 	//dynamic_threshold(blurImage, thresholdImage, 0.5, debugMode);
 	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
-	if(debugMode){
+	if(debugMode){ //OUTPUT
 		namedWindow("Blur Image", CV_WINDOW_NORMAL);
 		imshow("Blur Image", blurImage);
 		resizeWindow("Blur Image", 512, 384);
@@ -519,7 +526,7 @@ void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_pea
 	thresh = k;
 	threshold(input_image, threshold_image, thresh, 255, THRESH_BINARY);
 
-  if(debugMode){
+  if(debugMode){ //OUTPUT
   	//credit: http://docs.opencv.org/2.4/doc/tutorials/imgproc/histograms/histogram_calculation/histogram_calculation.html
   	int hist_w = 512; int hist_h = 400;
 	  int bin_w = cvRound( (double) hist_w/hist_size );
