@@ -35,23 +35,21 @@
 using namespace cv;
 using namespace std;
 
-//@constructor with default values
+//@constructor with empty values
+//@useage intended to be used inconjunction with the setup function
 ImageOutput::ImageOutput(){
   to_file     = false;
-  name_list   = new char*[2];
-  name_list[0] = (char*)"tracking_video";
-  name_list[1] = (char*)"debugging_video";
-  video_count = 2;
-  video_list  = new VideoWriter*[video_count];
+  video_count = 0;
+  video_list  = NULL;
+  name_list   = NULL;
 }
 
 //@constructor with specific values
+//@memory allocates memory to video_list and name_list
 ImageOutput::ImageOutput(bool new_to_file, char** new_name_list, Size new_size, int new_video_count){
-  to_file     = new_to_file;
-  video_list  = new VideoWriter*[video_count];
-  name_list   = new_name_list; //TODO maybe don't do this
-  frame_size  = new_size;
-  video_count = new_video_count;
+  
+  setup(new_to_file, new_name_list, new_size, new_video_count);
+
 }
 
 //@destructor
@@ -69,14 +67,13 @@ ImageOutput::~ImageOutput(){
 //@post if to_file all videoWriters are created or false in returned
 //@return true if success false for failure
 bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, int new_video_count){
-  //TODO close and destroy existing videos
+  //TODO close and destroy existing videos?
   to_file     = new_to_file;
-  video_list  = (VideoWriter **)calloc(new_video_count, sizeof(VideoWriter*)); //TODO create these in class
-  name_list   = new_name_list;
+  video_list  = new VideoWriter*[video_count];
   video_count = new_video_count;
   char* file_ext = (char*)".h264";
+  copy_char_list(new_name_list, new_video_count, name_list);
 
-  //TODO make a func out of this?
   if (to_file) {
     int ex = VideoWriter::fourcc('X','2','6','4');    //TODO make more general?
 
@@ -101,7 +98,7 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
 char ImageOutput::output_track_frame(Mat &frame){
   if(to_file) {
     video_list[0]->set(CAP_PROP_FRAME_WIDTH, frame.size().width);
-    video_list[0]->set(CAP_PROP_FRAME_HEIGHT , frame.size().height);
+    video_list[0]->set(CAP_PROP_FRAME_HEIGHT, frame.size().height);
     video_list[0]->write(frame);
     return 'x';
   } else {
@@ -134,13 +131,15 @@ bool ImageOutput::output_debug_frames(Mat** frames){
 
 
 //@closes output
-void ImageOutput::close_track_frame(Mat &frame){
-  destroyWindow(name_list[0]);
+void ImageOutput::close_track_frame(){
+  if(!to_file)
+    destroyWindow(name_list[0]);
 }
 
-void ImageOutput::close_debug_frames(Mat** frame){
-  for (int i = 1; i < video_count; i++)
-    destroyWindow(name_list[i]);
+void ImageOutput::close_debug_frames(){
+  if(!to_file)  
+    for (int i = 1; i < video_count; i++)
+      destroyWindow(name_list[i]);
 }
 
 

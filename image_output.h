@@ -68,11 +68,11 @@ public:
   //@track returns the result of a wait key
   //@usage output_trackframe should be called shortly after any others
   char output_track_frame(Mat &frame);
-  bool output_debug_frames(Mat** frames);
+  bool output_debug_frames(Mat** frame);
 
   //@closes output
-  void close_track_frame(Mat &frame);
-  void close_debug_frames(Mat** frame);
+  void close_track_frame();
+  void close_debug_frames();
 
   //@getters (no setters only initial setup)
   bool get_to_file() const; 
