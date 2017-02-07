@@ -26,7 +26,7 @@ image_input.o: image_input.cpp image_input.h
 		$(CC) $(OCV_PATH) -c image_input.cpp $(ALL_LIBS)
 
 image_output.o: image_output.cpp image_output.h
-		$(CC) $(OCV_PATH) -c image_output.cpp useful_functions.o $(ALL_LIBS)
+		$(CC) $(OCV_PATH) -c image_output.cpp useful_functions.o
 
 counter: counter.cpp
 		make useful_functions.o

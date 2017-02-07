@@ -68,7 +68,7 @@ public:
   //@track returns the result of a wait key
   //@usage output_trackframe should be called shortly after any others
   char output_track_frame(Mat &frame);
-  bool output_debug_frames(Mat** frame);
+  bool output_debug_frames(Mat frame[]);
 
   //@closes output
   void close_track_frame();

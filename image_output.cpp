@@ -71,7 +71,9 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
   to_file     = new_to_file;
   video_list  = new VideoWriter*[video_count];
   video_count = new_video_count;
+  frame_size  = Size(new_size);
   char* file_ext = (char*)".h264";
+  bool success = true;
   copy_char_list(new_name_list, new_video_count, name_list);
 
   if (to_file) {
@@ -80,9 +82,10 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
     for (int i = 0; i < video_count; i++) {
       video_list[i] = new VideoWriter(char_cat(name_list[i], file_ext),  ex, 4.0, frame_size);  
       if(!video_list[i]->isOpened()) {
-        cout << "ERROR: video writer didn't open" << endl;
+        cout << "ERROR: video writer didn't open for video " << char_cat(name_list[i], file_ext) << endl;
+        cout << "Press enter to continue..." << endl;
         getchar();
-        return false;
+        success = false;
       }
     }
   } else {
@@ -90,7 +93,7 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
     //TODO check for success?
   }
 
-  return true;
+  return success;
 }
 
 //@outputs the requested frames
@@ -108,20 +111,20 @@ char ImageOutput::output_track_frame(Mat &frame){
   }
 }
  
-bool ImageOutput::output_debug_frames(Mat** frames){
+bool ImageOutput::output_debug_frames(Mat frames[]){
   for (int i = 1; i < video_count; i++) {
-    if(frames[i]->empty()) {
-      cout <<  "Could not open or find the image" << std::endl ;
+    if(frames[i-1].empty()) {
+      cout <<  "ERROR: Could not open or find the image" << std::endl ;
       return false;
     }
     
     if(to_file) {
-      video_list[i]->set(CAP_PROP_FRAME_WIDTH, frames[i]->size().width);
-      video_list[i]->set(CAP_PROP_FRAME_HEIGHT , frames[i]->size().height);
-      video_list[i]->write(*frames[i]);
+      video_list[i]->set(CAP_PROP_FRAME_WIDTH, frames[i-1].size().width);
+      video_list[i]->set(CAP_PROP_FRAME_HEIGHT , frames[i-1].size().height);
+      video_list[i]->write(frames[i-1]);
     } else {
       namedWindow(name_list[i], CV_WINDOW_NORMAL);
-      imshow(name_list[i], *(frames[i]));
+      imshow(name_list[i], frames[i-1]);
       resizeWindow(name_list[i], WIN_HIEGHT, WIN_LENGTH);
     }
   }
