@@ -69,6 +69,7 @@ public:
   //@usage output_trackframe should be called shortly after any others
   char output_track_frame(Mat &frame);
   bool output_debug_frames(Mat frame[]);
+  void output_one_frame_to_file(Mat &frame, int i);
 
   //@closes output
   void close_track_frame();

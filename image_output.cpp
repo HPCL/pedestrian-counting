@@ -73,20 +73,21 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
   video_count = new_video_count;
   frame_size  = Size(new_size);
   char* file_ext = (char*)".h264";
-  bool success = true;
+  bool success = true, is_color = true;
   copy_char_list(new_name_list, new_video_count, name_list);
 
   if (to_file) {
     int ex = VideoWriter::fourcc('X','2','6','4');    //TODO make more general?
 
     for (int i = 0; i < video_count; i++) {
-      video_list[i] = new VideoWriter(char_cat(name_list[i], file_ext),  ex, 4.0, frame_size);  
+      video_list[i] = new VideoWriter(char_cat(name_list[i], file_ext),  ex, 4.0, frame_size, is_color);  
       if(!video_list[i]->isOpened()) {
         cout << "ERROR: video writer didn't open for video " << char_cat(name_list[i], file_ext) << endl;
         cout << "Press enter to continue..." << endl;
         getchar();
-        success = false;
+        success  = false;
       }
+      is_color = false; // only the tracking (first) is in color
     }
   } else {
     namedWindow(name_list[0], CV_WINDOW_NORMAL);
@@ -100,9 +101,7 @@ bool ImageOutput::setup(bool new_to_file, char** new_name_list, Size new_size, i
 //TODO make return determine success?
 char ImageOutput::output_track_frame(Mat &frame){
   if(to_file) {
-    video_list[0]->set(CAP_PROP_FRAME_WIDTH, frame.size().width);
-    video_list[0]->set(CAP_PROP_FRAME_HEIGHT, frame.size().height);
-    video_list[0]->write(frame);
+    output_one_frame_to_file(frame, 0);
     return 'x';
   } else {
     imshow(name_list[0],frame);
@@ -119,9 +118,7 @@ bool ImageOutput::output_debug_frames(Mat frames[]){
     }
     
     if(to_file) {
-      video_list[i]->set(CAP_PROP_FRAME_WIDTH, frames[i-1].size().width);
-      video_list[i]->set(CAP_PROP_FRAME_HEIGHT , frames[i-1].size().height);
-      video_list[i]->write(frames[i-1]);
+      output_one_frame_to_file(frames[i-1], i);
     } else {
       namedWindow(name_list[i], CV_WINDOW_NORMAL);
       imshow(name_list[i], frames[i-1]);
@@ -131,7 +128,11 @@ bool ImageOutput::output_debug_frames(Mat frames[]){
   return true;
 }
 
-
+void ImageOutput::output_one_frame_to_file(Mat &frame, int i){
+  video_list[i]->set(CAP_PROP_FRAME_WIDTH, frame.size().width);
+  video_list[i]->set(CAP_PROP_FRAME_HEIGHT, frame.size().height);
+  video_list[i]->write(frame);
+}
 
 //@closes output
 void ImageOutput::close_track_frame(){

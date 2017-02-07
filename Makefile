@@ -36,7 +36,7 @@ counter: counter.cpp
 		$(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o -o counter.out $(ALL_LIBS)
 
 counter_gdb:
-	  $(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o -g -o counter.out $(ALL_LIBS) 
+	  $(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.cpp image_input.cpp image_output.cpp -g -o counter.out $(ALL_LIBS) 
 
 get_background: get_background.cpp
 		make useful_functions.o

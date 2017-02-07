@@ -159,8 +159,10 @@ int main(int argc, char** argv){
 		} 
 
 		if (bs_type == 'M') {
+			cout << endl <<  "Using adaptive (MOG2) Background subtraction" << endl;
 			track_with_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
 		} else {
+			cout << endl <<  "Using non adaptive (Naive) Background subtraction" << endl;
 			track_with_non_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
 		}
 
@@ -178,7 +180,6 @@ int main(int argc, char** argv){
 	} // outer while loop (infinite)
 
 	delete[] name_list;
-
 	return 0;
 } //main
 
@@ -211,6 +212,11 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 		trackingEnabled =  true;
 		debugMode = true;
 	}
+
+	cout << endl;
+	cout << "Tracking: " << ((trackingEnabled) ? "Enabled" : "Disabled") << endl;
+	cout << "Debug:    " << ((debugMode) ? "Enabled" : "Disabled") << endl;
+	cout << endl;
 
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
@@ -301,6 +307,11 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 		debugMode = true;
 	}
 
+	cout << endl;
+	cout << "Tracking: " << ((trackingEnabled) ? "Enabled" : "Disabled") << endl;
+	cout << "Debug:    " << ((debugMode) ? "Enabled" : "Disabled") << endl;
+	cout << endl;
+
 	Ptr<BackgroundSubtractorMOG2> subtractor = createBackgroundSubtractorMOG2();
 	Mat frame, image;
 	Mat thresholdImage;
@@ -359,6 +370,9 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 		mat_list[thresh] = firstThreshold;
 		mat_list[final]  = thresholdImage;
 		video_out->output_debug_frames(mat_list);
+		// video_out->output_one_frame_to_file(differenceImage, diff+1);
+		// video_out->output_one_frame_to_file(firstThreshold, thresh+1);
+		// video_out->output_one_frame_to_file(thresholdImage, final+1);
 	}
 	else {
 		video_out->close_debug_frames();
