@@ -50,6 +50,7 @@
 #include "object.h"
 #include "useful_functions.h"
 #include "image_input.h"
+#include "image_output.h"
 
 #define REMOTE 1 == 1
 
@@ -66,9 +67,8 @@ static int BLUR_SIZE_1 = 200;
 static int BLUR_SIZE_2 = 200;
 static double MIN_OBJ_AREA = 1000;
 
-//#if REMOTE
-VideoWriter* out_video; 
-//#endif
+//TODO don't do this
+ImageOutput* video_out; 
 
 void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back);
 void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
@@ -101,20 +101,27 @@ void show_help();
 int main(int argc, char** argv){
 
 	//TODO combine static back and bs type?
-	bool use_static_back = false;		   // use a static image for background
+	//TODO make this thing a freaking class
+	bool use_static_back = false;		  // use a static image for background
 	bool background_is_video = true; 	// obtain static back from video
-	bool success = false;					// boolean set when image capture works
-	char bs_type = 'N';						// back subtraction algo 'M' for MOG2, non-adaptive is default
-	double next_id = 0;						// the next id to use
+	bool success = false;					    // boolean set when image capture works
+	char bs_type = 'N';						    // back subtraction algo 'M' for MOG2, non-adaptive is default
+	double next_id = 0;					    	// the next id to use
 	int count_LR = 0, count_RL = 0;		// counts of objects
+	string vid_name;									// name of video file to use
+	string back_name;									// optional name for background file
 
 	Mat grayBackground;
 	vector<Object> objects_0, objects_1;
 	Mat thresholdImage;
 	ImageInput* capture;
 
-	string vid_name;
-	string back_name;
+	int num_videos = 4;
+	char** name_list   = new char*[4]; 
+  name_list[0] = (char*)"tracking_video";
+  name_list[1] = (char*)"difference_image";
+  name_list[2] = (char*)"threshold_image";
+  name_list[3] = (char*)"final_threshold";
 
 	if(argc == 2) {
 		get_settings_file(argc, argv, vid_name, back_name, bs_type);
@@ -137,21 +144,10 @@ int main(int argc, char** argv){
 
 	success = capture->open();
 	
-	if(REMOTE) {
-	  Size S =  Size((int) capture->get(CV_CAP_PROP_FRAME_WIDTH), (int) capture->get(CV_CAP_PROP_FRAME_HEIGHT));
-	  int ex = VideoWriter::fourcc('X','2','6','4');		
-	  // out_video = new VideoWriter("frame1.avi",  ex, capture->get(CV_CAP_PROP_FPS), S, false);
-	  //  out_video->open("frame1.avi",  ex, capture->get(CV_CAP_PROP_FPS), S, false);
-		out_video = new VideoWriter("frame1.h264",  ex, 4.0, S);
-	  // out_video->open("frame1.avi",  -1, 4.0, S);
-	  if(!out_video->isOpened()) {
-	  	cout << "ERROR: video writer didn't open" << endl;
-			getchar();
-			exit(1);
-	  }
-  } else {
-		namedWindow("Frame1", CV_WINDOW_NORMAL);
-	}
+	Size S =  Size((int) capture->get(CV_CAP_PROP_FRAME_WIDTH), (int) capture->get(CV_CAP_PROP_FRAME_HEIGHT));
+  video_out = new ImageOutput();
+  if(!video_out->setup(REMOTE,name_list, S, num_videos))
+  	exit(1);
 
 	//TODO we won't need this loop for live streaming
 	while(1){
@@ -163,8 +159,10 @@ int main(int argc, char** argv){
 		} 
 
 		if (bs_type == 'M') {
+			cout << endl <<  "Using adaptive (MOG2) Background subtraction" << endl;
 			track_with_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
 		} else {
+			cout << endl <<  "Using non adaptive (Naive) Background subtraction" << endl;
 			track_with_non_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
 		}
 
@@ -181,6 +179,7 @@ int main(int argc, char** argv){
 
 	} // outer while loop (infinite)
 
+	delete[] name_list;
 	return 0;
 } //main
 
@@ -203,15 +202,21 @@ void set_background(string back_name, bool background_is_video, Mat& grayBackgro
 
 void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
 																double& next_id, int& count_LR, int& count_RL) {
-	bool debugMode = false;
+	bool debugMode       = false;
 	bool trackingEnabled = false;
-	bool pause = false;
-	bool success = false;
-	bool loop_switch = true;
+	bool pause           = false;
+	bool success         = false;
+	bool loop_switch     = true;
 
 	if (REMOTE) {
 		trackingEnabled =  true;
+		debugMode = true;
 	}
+
+	cout << endl;
+	cout << "Tracking: " << ((trackingEnabled) ? "Enabled" : "Disabled") << endl;
+	cout << "Debug:    " << ((debugMode) ? "Enabled" : "Disabled") << endl;
+	cout << endl;
 
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
@@ -244,15 +249,9 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 		if(trackingEnabled) {
 			search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
 		}
-		if(REMOTE) {
-			out_video->set(CAP_PROP_FRAME_WIDTH, frame2.size().width);
-			out_video->set(CAP_PROP_FRAME_HEIGHT , frame2.size().height);
-	    out_video->write(frame2);
-		} else {
-			imshow("Frame1",frame2);
-			resizeWindow("Frame1", 512, 384);
-			interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
-		}
+
+		char c = video_out->output_track_frame(frame2);
+		interpret_input(c, debugMode, trackingEnabled, pause);
 
 
 		if(!use_static_back) {
@@ -267,34 +266,26 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 //@compares two grayscale images using simple background sutraction
 //	also displays the stages if requested
 void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage) {
-	Mat differenceImage, blurImage;
+	Mat mat_list[3];
+	Mat differenceImage, blurImage, firstThreshold;
+	int diff = 0, thresh = 1, final = 2; // TODO maybe define these more universally
 
 	absdiff(grayImage1, grayImage2, differenceImage);
-	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
+	threshold(differenceImage, firstThreshold, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
 
-	if(debugMode) {
-		namedWindow("Difference Image", CV_WINDOW_NORMAL);
-		imshow("Difference Image", differenceImage);
-		resizeWindow("Difference Image", 512, 384);
-		namedWindow("Threshold Image", CV_WINDOW_NORMAL);
-		imshow("Threshold Image", thresholdImage);
-		resizeWindow("Threshold Image", 512, 384);
-	} else {
-		destroyWindow("Difference Image");
-		destroyWindow("Threshold Image");
-	}
-
-	blur(thresholdImage, blurImage, Size(BLUR_SIZE_1, BLUR_SIZE_1));
+	blur(firstThreshold, blurImage, Size(BLUR_SIZE_1, BLUR_SIZE_1));
 	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
 	if(debugMode){
-		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
-		imshow("Final Threshold Image", thresholdImage);
-		resizeWindow("Final Threshold Image", 512, 384);
+		mat_list[diff]   = differenceImage;
+		mat_list[thresh] = firstThreshold;
+		mat_list[final]  = thresholdImage;
+		video_out->output_debug_frames(mat_list);
 	}
 	else {
-		destroyWindow("Final Threshold Image");
+		video_out->close_debug_frames();
 	}
+
 }
 
 //track objects through video using GMM background subtraction
@@ -313,7 +304,13 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 
 	if (REMOTE) {
 		trackingEnabled =  true;
+		debugMode = true;
 	}
+
+	cout << endl;
+	cout << "Tracking: " << ((trackingEnabled) ? "Enabled" : "Disabled") << endl;
+	cout << "Debug:    " << ((debugMode) ? "Enabled" : "Disabled") << endl;
+	cout << endl;
 
 	Ptr<BackgroundSubtractorMOG2> subtractor = createBackgroundSubtractorMOG2();
 	Mat frame, image;
@@ -336,16 +333,8 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 			search_for_movement( thresholdImage, frame, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
 		}
 
-		if(REMOTE) {
-			out_video->set(CAP_PROP_FRAME_WIDTH, frame.size().width);
-			out_video->set(CAP_PROP_FRAME_HEIGHT , frame.size().height);
-	    out_video->write(frame);
-    } else {
-			imshow("Frame1",frame);
-			resizeWindow("Frame1", 512, 384);
-			interpret_input(waitKey(10), debugMode, trackingEnabled, pause);
-		}
-
+		char c = video_out->output_track_frame(frame);
+		interpret_input(c, debugMode, trackingEnabled, pause);
 
 		success = capture->read(frame);
 		loop_switch = !loop_switch;
@@ -360,42 +349,33 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 //@finds movement blobs based on GMM background subtraction
 //	also displays the stages if requested
 void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool debugMode, Mat &thresholdImage) {
-	Mat differenceImage, blurImage;
+	Mat mat_list[3];
+	Mat differenceImage, blurImage, firstThreshold;
+	int diff = 0, thresh = 1, final = 2; // TODO maybe define these more universally
 
 	subtractor->apply(image, differenceImage);
 	//blur(differenceImage, blurImage, Size(BLUR_SIZE_1, BLUR_SIZE_1));
-	threshold(differenceImage, thresholdImage, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
-
-	if(debugMode) {
-		namedWindow("Difference Image", CV_WINDOW_NORMAL);
-		imshow("Difference Image", differenceImage);
-		resizeWindow("Difference Image", 512, 384);
-		namedWindow("Threshold Image", CV_WINDOW_NORMAL);
-		imshow("Threshold Image", thresholdImage);
-		resizeWindow("Threshold Image", 512, 384);
-	} else {
-		destroyWindow("Difference Image");
-		destroyWindow("Threshold Image");
-	}
+	threshold(differenceImage, firstThreshold, SENSITIVITY_VALUE_1, 255, THRESH_BINARY);
 
 	// TODO determine if this is useful
-	blur(thresholdImage, blurImage, Size(BLUR_SIZE_2, BLUR_SIZE_2));
+	blur(firstThreshold, blurImage, Size(BLUR_SIZE_2, BLUR_SIZE_2));
 	//TODO paramertize %
 	//TODO figure out if this is actually better
 	//dynamic_threshold(blurImage, thresholdImage, 0.5, debugMode);
 	threshold(blurImage, thresholdImage, SENSITIVITY_VALUE_2, 255, THRESH_BINARY);
 
+	//TODO maybe add blur image
 	if(debugMode){
-		namedWindow("Blur Image", CV_WINDOW_NORMAL);
-		imshow("Blur Image", blurImage);
-		resizeWindow("Blur Image", 512, 384);
-		namedWindow("Final Threshold Image", CV_WINDOW_NORMAL);
-		imshow("Final Threshold Image", thresholdImage);
-		resizeWindow("Final Threshold Image", 512, 384);
+		mat_list[diff]   = differenceImage;
+		mat_list[thresh] = firstThreshold;
+		mat_list[final]  = thresholdImage;
+		video_out->output_debug_frames(mat_list);
+		// video_out->output_one_frame_to_file(differenceImage, diff+1);
+		// video_out->output_one_frame_to_file(firstThreshold, thresh+1);
+		// video_out->output_one_frame_to_file(thresholdImage, final+1);
 	}
 	else {
-		destroyWindow("Blur Image");
-		destroyWindow("Final Threshold Image");
+		video_out->close_debug_frames();
 	}
 }
 
@@ -519,7 +499,8 @@ void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_pea
 	thresh = k;
 	threshold(input_image, threshold_image, thresh, 255, THRESH_BINARY);
 
-  if(debugMode){
+  if(debugMode && !(REMOTE)){ //OUTPUT
+  	//TODO we probably don't need this anymore
   	//credit: http://docs.opencv.org/2.4/doc/tutorials/imgproc/histograms/histogram_calculation/histogram_calculation.html
   	int hist_w = 512; int hist_h = 400;
 	  int bin_w = cvRound( (double) hist_w/hist_size );
@@ -709,10 +690,9 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 
 //@interpret keyboard input for runtime options
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause) {
-	cout << endl << "input: " << c;
-	cout << endl << "input: " << (int)c;
 	char c2 = 'x';
 	bool wait = pause;
+	//TODO set defines or somthing for these numbers
 	switch(c){
 	// case 1048603:
 	case 27: //'esc' key has been pressed, exit program.

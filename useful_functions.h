@@ -44,6 +44,9 @@ using namespace cv;
 int char_to_int(char* c);
 int str_to_int(string s);
 string int_to_str(int i);
+string char_cat(char* first, char* second);
+void copy_char_list(char** in, int in_count, char** &out);
+void delete_char_list(char** &list, int len);
 void display_window(string name, Mat& img, bool wait = false);
 void get_background(string vid_name, Mat& avg_frame);
 

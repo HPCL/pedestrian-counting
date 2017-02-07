@@ -9,6 +9,7 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
     * distance error?
     * discretization
     * overlap
+  * make sure everything is properly documented
   * add more options to the settings
   * test live stream option
   * get more test videos
@@ -23,6 +24,10 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
 ## image_input.h and .cpp
   * image input class
   * wraps the raspicamera and video file options up so that the other programs don't care
+
+## image_output.h and .cpp
+  * image output class
+  * abstracts outputing to file or to the screen
 
 ## get_background.cpp
   * simple program to average a video and find background

@@ -61,8 +61,41 @@ string int_to_str(int i){
 	return ss.str();
 }
 
+//@concatonates char* to a string
+string char_cat(char* first, char* second) {
+	stringstream ss;
+	ss << first << second;
+	return ss.str();
+}
 
-//@displays window or crashes program
+//@copies a list of char* to a different list of char*
+//@pre out should be empty
+//@note you must delete the chars in the new list
+void copy_char_list(char** in, int in_count, char** &out) {
+	int char_count = 0;
+	out = new char*[in_count]; 
+
+	for (int i = 0; i < in_count; i++) {
+
+		char_count = 0;
+		while(in[i][char_count++] != '\0'); //includes \0 in count
+
+		out[i] = new char[char_count];
+		for (int j = 0; j < char_count; j++) {
+			out[i][j] = in[i][j];
+		}
+
+	} //outer loop
+} // copy_char_count
+
+void delete_char_list(char** &list, int len) {
+  for (int i = 0; i < len; i++) {
+    delete list[i];
+  }
+  delete[] list;  
+}
+
+//@displays window or crashes program (not really in use)
 void display_window(string name, Mat& img, bool wait /*= false*/) {
   if(img.empty()) {
     cout <<  "Could not open or find the image" << std::endl ;
