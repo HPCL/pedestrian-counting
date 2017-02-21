@@ -36,6 +36,10 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
 ## useful_functions.cpp
   * a couple functions that I wanted to have available in multiple places
 
+## Also good to mention
+  * make sure you add the opencv stuff to you path: [path to opencv]/include
+    * in our case /usr/local/packages/opencv/include
+
 ## Acknowledgements
 ### Much of this code is based on helpful tutorials available here:
   * http://docs.opencv.org/3.1.0/d5/d07/tutorial_multitracker.html#gsc.tab=0
