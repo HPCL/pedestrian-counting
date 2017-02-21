@@ -7,9 +7,15 @@
 using namespace cv;
 using namespace std;
 
+#if IS_RASP_PI
 ImageInput::ImageInput(){
   isLive = true;
 }
+#else
+ImageInput::ImageInput(){
+  isLive = false;
+}
+#endif
 
 ImageInput::ImageInput(String vid_name){
   isLive = false;
@@ -18,6 +24,8 @@ ImageInput::ImageInput(String vid_name){
 
 ImageInput::~ImageInput() {}
 
+
+#if IS_RASP_PI
 bool ImageInput::open(){
   if (isLive){
     return rasp_cam.open();
@@ -26,7 +34,15 @@ bool ImageInput::open(){
     return vid_capture.isOpened();
   }
 }
+#else
+bool ImageInput::open(){
+  vid_capture.open(vid_name);
+  return vid_capture.isOpened();
+}
+#endif
 
+
+#if IS_RASP_PI
 bool ImageInput::read(Mat& frame) {
   if(isLive) {
     rasp_cam.grab();
@@ -36,11 +52,18 @@ bool ImageInput::read(Mat& frame) {
     return vid_capture.read(frame);
   }
 }
+#else
+bool ImageInput::read(Mat& frame) {
+  return vid_capture.read(frame);
+}
+#endif
 
 double ImageInput::get(int prop_id){
   return vid_capture.get(prop_id);
 }
 
+
+#if IS_RASP_PI
 void ImageInput::release() {
   if (isLive) {
     rasp_cam.release();
@@ -48,3 +71,8 @@ void ImageInput::release() {
     vid_capture.release();
   }
 }
+#else
+void ImageInput::release() {
+  vid_capture.release();
+}
+#endif
