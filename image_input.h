@@ -5,8 +5,13 @@
 #ifndef IMAGE_INPUT_H
 #define IMAGE_INPUT_H
 
+#define IS_RASP_PI 0 // make 1 for true
+
+#if IS_RASP_PI
 //#include </usr/local/include/raspicam/raspicam_cv.h>
 #include <raspicam/raspicam_cv.h>
+#endif  
+
 #include <opencv/cv.hpp>
 
 using namespace cv;
@@ -32,7 +37,10 @@ private:
   bool         isLive;            // whether to use a live stream or video file
   string       vid_name;          // filepath of video, if capturing from file
   VideoCapture vid_capture;       // object to read video from file
+
+  #if IS_RASP_PI
   raspicam::RaspiCam_Cv rasp_cam; // object to get images from raspberry pi's camera
+  #endif
 };
 
  #endif

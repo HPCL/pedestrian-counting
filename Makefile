@@ -9,7 +9,8 @@ ALL_LIBS += -lopencv_core -lopencv_videoio # basic opencv
 ALL_LIBS += -lopencv_video # background subtractor MOG2
 ALL_LIBS += -lopencv_imgcodecs #
 ALL_LIBS += -lraspicam -lraspicam_cv # to live stream with raspicam
-OCV_PATH  = -I/usr/include/
+#OCV_PATH  = -I/usr/include/ # on pi
+OCV_PATH  = -I/usr/local/packages/opencv/include # on arya
 VID_PATH  = /home/pi/test_videos
 
 object.o: object.cpp object.h
