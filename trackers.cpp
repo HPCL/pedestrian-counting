@@ -38,11 +38,11 @@ char   Trackers::algo         = 'D';
 Object* Trackers::find_previous_object(vector<Object> &old_objs, Object &curr_obj) {
   switch(algo) {
     case 'O':
-      find_previous_object_overlap(old_objs, curr_obj);
+      return find_previous_object_overlap(old_objs, curr_obj);
       break;
     case 'D':
     default:
-      find_previous_object_dist(old_objs, curr_obj);
+      return find_previous_object_dist(old_objs, curr_obj);
 
   }
   return NULL;

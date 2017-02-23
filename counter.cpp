@@ -84,8 +84,6 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 												vector<Object> &objects_0, vector<Object> &objects_1);
 void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_peak, bool debugMode);
 
-// Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj);
-// Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj);
 void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &count_LR, int &count_RL);
 char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
 char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle);
@@ -131,6 +129,9 @@ int main(int argc, char** argv){
 	} else {
 		show_help();
 	}
+
+	//TODO move to get settings?
+	Trackers::set_max_dist_sqd(MAX_DIST_SQD);
 
 	if(vid_name == "RASPICAM") {
 		capture = new ImageInput();
@@ -417,9 +418,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_0.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_1.size() > 0) {
-						//TODO parameterize
-						prev_obj = Trackers::find_previous_object_overlap(objects_1, *objects_0.rbegin());
-						// prev_obj = Trackers::find_previous_object_dist(objects_1, *objects_0.rbegin());
+						prev_obj = Trackers::find_previous_object(objects_1, *objects_0.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_0.rbegin()->set_id(next_id++);
@@ -446,9 +445,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					objects_1.push_back(Object(*it_0));
 					prev_obj = NULL;
 					if(objects_0.size() > 0) {
-						//TODO parameterize
-						prev_obj = Trackers::find_previous_object_overlap(objects_0, *objects_1.rbegin());
-						// prev_obj = Trackers::find_previous_object_dist(objects_0, *objects_1.rbegin());
+						prev_obj = Trackers::find_previous_object(objects_0, *objects_1.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_1.rbegin()->set_id(next_id++);
@@ -528,39 +525,6 @@ void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_pea
 	}
 
 } //dynamic_threshold
-
-// //@searches through list of old object to find match for the new one based on distance
-// //@returns pointer to the old one
-// //TODO make more efficient
-// Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj) {
-// 	double dist, min_dist = -1.0;
-// 	Object *prev_obj = NULL;
-// 	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
-// 		dist = it_old_obj->find_distance_sqd(curr_obj);
-// 		if( (dist <= MAX_DIST_SQD) && ((min_dist < 0) || (dist < min_dist)) ) {
-// 			min_dist = dist;
-// 			prev_obj = &(*it_old_obj); 
-// 		}
-// 	}
-// 	return prev_obj;
-// }
-
-// //@searches through list of old object to find match for the new one based on object overlap
-// //@returns pointer to the old one
-// //TODO make more efficient
-// Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj) {
-// 	double area, max_area = 0.0;
-// 	Object *prev_obj = NULL;
-// 	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
-// 		area = it_old_obj->find_overlap_area(curr_obj);
-// 		if( area > max_area ) {
-// 			max_area = area;
-// 			prev_obj = &(*it_old_obj);
-// 		}
-// 	}
-// 	return prev_obj;
-// }
-
 
 //@searches through list of old object to find match for the new one
 //@returns pointer to the old one
@@ -682,6 +646,9 @@ void get_settings_file(int argc, char** argv, string& vid_name, string& back_nam
 						break;
 					case 8:
 						bs_type = next_line[0];
+						break;
+					case 9:
+						Trackers::set_algo(next_line[0]);
 						break;
 				} //switch
 				input_cnt++;

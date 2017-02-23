@@ -101,6 +101,7 @@ bool Object::find_overlap_area(const Object &other_object) const {
 }
 
 
+
 /*************************** Setters ***************************/
 
 void Object::set_center(Point2d &new_center) {
@@ -140,4 +141,12 @@ bool Object::get_is_counted() const {
 
 void Object::get_box(Rect2d &out_box) const {
   out_box = Rect2d(box);
+}
+
+double Object::get_box_height(){
+  return box.height;
+}
+
+double Object::get_box_width(){
+  return box.width;
 }

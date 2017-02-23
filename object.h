@@ -73,6 +73,7 @@ public:
   //@credit Sean Gravelle 
   bool find_overlap_area(const Object &other_object) const;
 
+
   //@sets center to input
   void set_center(Point2d &new_center);
   //@sets center to center of mass of contour
@@ -92,7 +93,9 @@ public:
   bool get_is_counted() const;
   //@copies box to out_box
   void get_box(Rect2d &out_box) const;
-
+  //@gets some of the box properties
+  double get_box_height();
+  double get_box_width();
 
 private:
   Point2d center;       // point that indicates object center
