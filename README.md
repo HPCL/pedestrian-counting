@@ -29,6 +29,9 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
   * image output class
   * abstracts outputing to file or to the screen
 
+## trackers.h and .cpp
+  * 
+
 ## get_background.cpp
   * simple program to average a video and find background
   * not working that great, but could be due to shaky video

@@ -51,4 +51,5 @@ get_background: get_background.cpp
 clean:
 	rm *.o
 	rm *.out
+	rm *.h264
 

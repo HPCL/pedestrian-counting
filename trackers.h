@@ -57,6 +57,14 @@ public:
   static Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj);
   static Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj);
 
+  //getters and setters
+  static char get_algo();
+  static void set_algo(char new_algo);
+
+  static double get_max_dist_sqd();
+  static void   set_max_dist_sqd(double new_max_dist_sqd);
+
+private:
   static char algo; // algorithm choice
   static double max_dist_sqd; // aximum distance between to centers to consider it one object
 };

@@ -32,8 +32,20 @@
 
 #include "trackers.h"
 
-Object* Trackers::find_previous_object(vector<Object> &old_objs, Object &curr_obj) {
+double Trackers::max_dist_sqd = 1000;
+char   Trackers::algo         = 'D';
 
+Object* Trackers::find_previous_object(vector<Object> &old_objs, Object &curr_obj) {
+  switch(algo) {
+    case 'O':
+      find_previous_object_overlap(old_objs, curr_obj);
+      break;
+    case 'D':
+    default:
+      find_previous_object_dist(old_objs, curr_obj);
+
+  }
+  return NULL;
 }
 
 Object* Trackers::find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj) {
@@ -61,4 +73,22 @@ Object* Trackers::find_previous_object_overlap(vector<Object> &old_objs, Object 
   }
   return prev_obj;
 }
+
+
+char Trackers::get_algo(){
+  return algo;
+}
+
+void Trackers::set_algo(char new_algo){
+  algo = new_algo;
+}
+
+double Trackers::get_max_dist_sqd(){
+  return max_dist_sqd;
+}
+
+void   Trackers::set_max_dist_sqd(double new_max_dist_sqd){
+  max_dist_sqd = new_max_dist_sqd;
+}
+
 

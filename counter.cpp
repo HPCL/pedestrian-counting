@@ -418,8 +418,8 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					prev_obj = NULL;
 					if(objects_1.size() > 0) {
 						//TODO parameterize
-						// prev_obj = Trackers::find_previous_object_overlap(objects_1, *objects_0.rbegin());
-						prev_obj = Trackers::find_previous_object_dist(objects_1, *objects_0.rbegin());
+						prev_obj = Trackers::find_previous_object_overlap(objects_1, *objects_0.rbegin());
+						// prev_obj = Trackers::find_previous_object_dist(objects_1, *objects_0.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_0.rbegin()->set_id(next_id++);
@@ -447,8 +447,8 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					prev_obj = NULL;
 					if(objects_0.size() > 0) {
 						//TODO parameterize
-						// prev_obj = Trackers::find_previous_object_overlap(objects_0, *objects_1.rbegin());
-						prev_obj = Trackers::find_previous_object_dist(objects_0, *objects_1.rbegin());
+						prev_obj = Trackers::find_previous_object_overlap(objects_0, *objects_1.rbegin());
+						// prev_obj = Trackers::find_previous_object_dist(objects_0, *objects_1.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_1.rbegin()->set_id(next_id++);
