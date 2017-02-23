@@ -12,18 +12,21 @@
 # BLUR_SIZE_2
 # MIN_OBJ_AREA
 # background subtraction algorithm (M for MOG2, default will be non-adaptive)
-/home/pi/test_videos/three_bikes_one_truck.mp4
+# Tracking algorithm (D for dist, O for overlap)
+#
+../test_videos/three_bikes_one_truck.mp4
 NONE
 #MDS
 #6000000
 400
-# SV
+# Sensitivity
 200
 30
-# BS
+# Blur Size
 5
 20
 # MOA
 70
 # BS algo
 M
+# tracking

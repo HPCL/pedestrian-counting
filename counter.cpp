@@ -51,6 +51,7 @@
 #include "useful_functions.h"
 #include "image_input.h"
 #include "image_output.h"
+#include "trackers.h"
 
 #define REMOTE 1 == 1
 
@@ -83,8 +84,8 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 												vector<Object> &objects_0, vector<Object> &objects_1);
 void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_peak, bool debugMode);
 
-Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj);
-Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj);
+// Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj);
+// Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj);
 void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &count_LR, int &count_RL);
 char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
 char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle);
@@ -143,10 +144,15 @@ int main(int argc, char** argv){
 		set_background(back_name, background_is_video, grayBackground, use_static_back);
 
 	success = capture->open();
-	
+	if(!success){
+			cout << "ERROR ACQUIRING VIDEO FEED named \"" << vid_name << "\"\n";
+			getchar();
+			exit(1);
+	}
+
 	Size S =  Size((int) capture->get(CV_CAP_PROP_FRAME_WIDTH), (int) capture->get(CV_CAP_PROP_FRAME_HEIGHT));
   video_out = new ImageOutput();
-  if(!video_out->setup(REMOTE,name_list, S, num_videos))
+  if(!video_out->setup(REMOTE, name_list, S, num_videos))
   	exit(1);
 
 	//TODO we won't need this loop for live streaming
@@ -412,8 +418,8 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					prev_obj = NULL;
 					if(objects_1.size() > 0) {
 						//TODO parameterize
-						// prev_obj = find_previous_object_overlap(objects_1, *objects_0.rbegin());
-						prev_obj = find_previous_object_dist(objects_1, *objects_0.rbegin());
+						// prev_obj = Trackers::find_previous_object_overlap(objects_1, *objects_0.rbegin());
+						prev_obj = Trackers::find_previous_object_dist(objects_1, *objects_0.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_0.rbegin()->set_id(next_id++);
@@ -441,8 +447,8 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 					prev_obj = NULL;
 					if(objects_0.size() > 0) {
 						//TODO parameterize
-						// prev_obj = find_previous_object_overlap(objects_0, *objects_1.rbegin());
-						prev_obj = find_previous_object_dist(objects_0, *objects_1.rbegin());
+						// prev_obj = Trackers::find_previous_object_overlap(objects_0, *objects_1.rbegin());
+						prev_obj = Trackers::find_previous_object_dist(objects_0, *objects_1.rbegin());
 					}
 					if(prev_obj == NULL) {
 						objects_1.rbegin()->set_id(next_id++);
@@ -469,6 +475,7 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 //				threshold_image - the output threshold image
 //        percent_peak    - percent of histogram peak value at which to cut off
 //@pre input_image is a grayscale image of type CV_8U
+//TODO probably not actually useful
 void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_peak, bool debugMode) {
 	int hist_size = 256;
 	float range[] = {0, hist_size};
@@ -522,37 +529,37 @@ void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_pea
 
 } //dynamic_threshold
 
-//@searches through list of old object to find match for the new one based on distance
-//@returns pointer to the old one
-//TODO make more efficient
-Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj) {
-	double dist, min_dist = -1.0;
-	Object *prev_obj = NULL;
-	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
-		dist = it_old_obj->find_distance_sqd(curr_obj);
-		if( (dist <= MAX_DIST_SQD) && ((min_dist < 0) || (dist < min_dist)) ) {
-			min_dist = dist;
-			prev_obj = &(*it_old_obj); 
-		}
-	}
-	return prev_obj;
-}
+// //@searches through list of old object to find match for the new one based on distance
+// //@returns pointer to the old one
+// //TODO make more efficient
+// Object* find_previous_object_dist(vector<Object> &old_objs, Object &curr_obj) {
+// 	double dist, min_dist = -1.0;
+// 	Object *prev_obj = NULL;
+// 	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
+// 		dist = it_old_obj->find_distance_sqd(curr_obj);
+// 		if( (dist <= MAX_DIST_SQD) && ((min_dist < 0) || (dist < min_dist)) ) {
+// 			min_dist = dist;
+// 			prev_obj = &(*it_old_obj); 
+// 		}
+// 	}
+// 	return prev_obj;
+// }
 
-//@searches through list of old object to find match for the new one based on object overlap
-//@returns pointer to the old one
-//TODO make more efficient
-Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj) {
-	double area, max_area = 0.0;
-	Object *prev_obj = NULL;
-	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
-		area = it_old_obj->find_overlap_area(curr_obj);
-		if( area > max_area ) {
-			max_area = area;
-			prev_obj = &(*it_old_obj);
-		}
-	}
-	return prev_obj;
-}
+// //@searches through list of old object to find match for the new one based on object overlap
+// //@returns pointer to the old one
+// //TODO make more efficient
+// Object* find_previous_object_overlap(vector<Object> &old_objs, Object &curr_obj) {
+// 	double area, max_area = 0.0;
+// 	Object *prev_obj = NULL;
+// 	for(vector<Object>::iterator it_old_obj = old_objs.begin(); it_old_obj != old_objs.end(); it_old_obj++) {
+// 		area = it_old_obj->find_overlap_area(curr_obj);
+// 		if( area > max_area ) {
+// 			max_area = area;
+// 			prev_obj = &(*it_old_obj);
+// 		}
+// 	}
+// 	return prev_obj;
+// }
 
 
 //@searches through list of old object to find match for the new one
