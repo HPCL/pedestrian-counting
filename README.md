@@ -3,7 +3,7 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
 
 ## TODO
   * clean up code
-    * output class, tracker class 
+    * tracker class 
     * put all bounding box stuff in obj class
   * accurate counting
     * distance error?
