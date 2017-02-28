@@ -93,11 +93,19 @@ bool Object::overlaps(const Object &other_object) const {
 }
 
 
-bool Object::find_overlap_area(const Object &other_object) const {
+double Object::find_overlap_area(const Object &other_object) const {
   Rect2d other_box;
 
   other_object.get_box(other_box);
   return (box & other_box).area();
+}
+
+
+double Object::find_overlap_fraction(const Object &other_object) const {
+  Rect2d other_box;
+
+  other_object.get_box(other_box);
+  return (box & other_box).area() / box.area();
 }
 
 

@@ -70,8 +70,10 @@ public:
   //@checks if two objects overlap
   bool overlaps(const Object &other_object) const;
   //@calculates area of overlap
-  //@credit Sean Gravelle 
-  bool find_overlap_area(const Object &other_object) const;
+  double find_overlap_area(const Object &other_object) const;
+  //@calculates the overlap area divided by this object's area
+  //  intended to be less dependant on object area
+  double find_overlap_fraction(const Object &other_object) const;
 
 
   //@sets center to input
