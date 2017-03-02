@@ -32,6 +32,9 @@ image_output.o: image_output.cpp image_output.h
 trackers.o: trackers.cpp trackers.h
 		$(CC) $(OCV_PATH) -c trackers.cpp
 
+target.o: target.cpp target.h
+		$(CC) $(OCV_PATH) -c target.cpp
+
 counter: counter.cpp
 		make useful_functions.o
 		make image_input.o

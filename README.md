@@ -4,12 +4,14 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
 ## TODO
   * clean up code
     * tracker class 
-    * put all bounding box stuff in obj class
+    * target class
+    * algorithms
   * accurate counting
     * distance error?
     * discretization
     * overlap
   * make sure everything is properly documented
+    * use readthedocs.org instead of markdown
   * add more options to the settings
   * test live stream option
   * get more test videos
@@ -30,7 +32,8 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
   * abstracts outputing to file or to the screen
 
 ## trackers.h and .cpp
-  * 
+  * static class that basically just a bunch of tracking algorithms
+  * matches object or targets from frame to frame
 
 ## get_background.cpp
   * simple program to average a video and find background
@@ -40,8 +43,10 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
   * a couple functions that I wanted to have available in multiple places
 
 ## Also good to mention
-  * make sure you add the opencv stuff to you path: [path to opencv]/include
+  * make sure you add the opencv stuff to your path: [path to opencv]/include
     * in our case /usr/local/packages/opencv/include
+    * or do the -I thing when compiling
+    * also -L for the libraries
 
 ## Acknowledgements
 ### Much of this code is based on helpful tutorials available here:

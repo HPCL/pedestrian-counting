@@ -1,5 +1,7 @@
 /* object.h
  * a class that defines an object for tracking in openCV
+ * these are blobs of movement that have been id'd by openCV
+ * maybe one, several, or part of a trackable thing (target)
  
  * Brian J Gravelle
  * ix.cs.uoregon.edu/~gravelle
