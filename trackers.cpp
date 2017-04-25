@@ -43,7 +43,6 @@ Object* Trackers::find_previous_object(vector<Object> &old_objs, Object &curr_ob
     case 'D':
     default:
       return find_previous_object_dist(old_objs, curr_obj);
-
   }
   return NULL;
 }

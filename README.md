@@ -3,9 +3,9 @@ a program to count pedestrians and bikers with a raspberry pi and OpenCV
 
 ## TODO
   * clean up code
-    * tracker class 
-    * target class
-    * algorithms
+  * add kalman filter 
+  * target class (might be deprecated)
+  * algorithms
   * accurate counting
     * distance error?
     * discretization
