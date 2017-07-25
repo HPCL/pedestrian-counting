@@ -46,15 +46,13 @@ using namespace cv;
 class Object {
 public:
   //@creates new object
-  //@post id set to -1, is_counted to false
   Object();
   //@creates new object
-  //@post id set to -1, is_counted to false
   //      center is center of mass of contour
   Object(const vector<Point> &contour);
   //@creates new object
-  //@post is_counted set to false, others set to inputs
-  Object(const Point2d &new_center, int new_id, Rect2d &new_box);
+  //@post data set to inputs
+  Object(const Point2d &new_center, Rect2d &new_box);
   //@copies input object to a new one
   Object(const Object &other);
   //@default destructor
@@ -82,30 +80,25 @@ public:
   void set_center(Point2d &new_center);
   //@sets center to center of mass of contour
   void set_center(vector<Point> &contour);
-  //@sets id to input, use -1 for undefined id
-  void set_id(int new_id);
-  //@marks objects as counted (or input false to unmark)
-  void set_is_counted(bool new_is_counted = true);
   //@sets box to input
   void set_box(Rect2d &new_box);
+  //@sets is found to true (or false)
+  void set_is_found(bool _is_found = true);
 
   //@copies center to out_center
   void get_center(Point2d &out_center) const;
-  //@returns id
-  int  get_id() const;
-  //@returns is_counted
-  bool get_is_counted() const;
   //@copies box to out_box
   void get_box(Rect2d &out_box) const;
   //@gets some of the box properties
   double get_box_height();
   double get_box_width();
+  //@what do you think it does?
+  bool get_is_found() const;
 
 private:
-  Point2d center;       // point that indicates object center
-  int     id;           // object id; -1 means none assigned yet
-  bool    is_counted;   // if the object has been counted
-  Rect2d  box;          // bounding box for object (x, y, width, height are double)
+  Point2d center;    // point that indicates object center
+  Rect2d  box;       // bounding box for object (x, y, width, height are double)
+  bool    is_found;  // boolean indicating that the object has been id'd as an existing target(s)
 };
 
 #endif

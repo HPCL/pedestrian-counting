@@ -52,8 +52,12 @@
 #include "image_input.h"
 #include "image_output.h"
 #include "trackers.h"
+#include "Target.hpp"
 
 #define REMOTE 1 == 1
+
+#define EMPTY_LIMIT 4
+#define MIN_ALIVE   5
 
 using namespace std;
 using namespace cv;
@@ -68,23 +72,33 @@ static int BLUR_SIZE_1 = 200;
 static int BLUR_SIZE_2 = 200;
 static double MIN_OBJ_AREA = 1000;
 
+// TODO all of this is wrong and will need to change
+static TYPE dt = 0.25;
+static TYPE A_init[] = {1, dt, 0, 0, 0, 0, 0, 1, dt, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, dt, 0, 0, 0, 0, 0, 1, dt, 0, 0, 0, 0, 0, 1};
+static TYPE C_init[] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0};
+static TYPE Q_init[] = {1e-2, 0, 0, 0, 0, 0, 0, 5.0, 0, 0, 0, 0, 0, 0, 1e-2, 0, 0, 0, 0, 0, 0, 1e-2, 0, 0, 0, 0, 0, 0, 5.0, 0, 0, 0, 0, 0, 0, 1e-2};
+static TYPE R_init[] = {5.0, 0, 0, 5.0};
+static TYPE P_init[] = {1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1};
+static TYPE x_hat_init[] = {0, 0, 0, 0, 0, 0};
+static int n = 6;
+static int m = 2;
+
 //TODO don't do this
 ImageOutput* video_out; 
 
 void set_background(string back_name, bool background_is_video, Mat& grayBackground, bool& use_static_back);
 void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
-																double& next_id, int& count_LR, int& count_RL);
+																double& total_targets, int& count_LR, int& count_RL);
 void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &thresholdImage);
 
 void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
-														double& next_id, int& count_LR, int& count_RL);
+														double& total_targets, int& count_LR, int& count_RL);
 void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool debugMode, Mat &thresholdImage);
 void search_for_movement(Mat &thresholdImage, Mat &display, 
-												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
-												vector<Object> &objects_0, vector<Object> &objects_1);
+												bool loop_switch, double &total_targets, int &count_LR, int &count_RL,
+												vector<Target*> &targets);
 void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_peak, bool debugMode);
 
-void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &count_LR, int &count_RL);
 char is_center_crossed(const Point2d &a, const Point2d &b, double middle);
 char is_center_crossed(const Object &obj_a, const Object &obj_b, double middle);
 
@@ -92,7 +106,7 @@ void get_settings_inline(int argc, char** argv, string& vid_name, string& back_n
 void get_settings_file(int argc, char** argv, string& vid_name, string& back_name, char& bs_type);
 void interpret_input(char c, bool &debugMode, bool &trackingEnabled, bool &pause);
 void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display);
-void draw_centers(vector<Object> &objects, Mat &display);
+void draw_centers(vector<Target*> &targets, Mat &display);
 
 void show_help();
 
@@ -105,14 +119,12 @@ int main(int argc, char** argv){
 	bool background_is_video = true; 	// obtain static back from video
 	bool success = false;					    // boolean set when image capture works
 	char bs_type = 'N';						    // back subtraction algo 'M' for MOG2, non-adaptive is default
-	double next_id = 0;					    	// the next id to use
+	double total_targets = 0;					    	// the next id to use
 	int count_LR = 0, count_RL = 0;		// counts of objects
 	string vid_name;									// name of video file to use
 	string back_name;									// optional name for background file
 
 	Mat grayBackground;
-	vector<Object> objects_0, objects_1;
-	Mat thresholdImage;
 	ImageInput* capture;
 
 	int num_videos = 4;
@@ -132,6 +144,7 @@ int main(int argc, char** argv){
 
 	//TODO move to get settings?
 	Trackers::set_max_dist_sqd(MAX_DIST_SQD);
+	Target::max_dist_sqd = MAX_DIST_SQD;
 
 	if(vid_name == "RASPICAM") {
 		capture = new ImageInput();
@@ -167,17 +180,18 @@ int main(int argc, char** argv){
 
 		if (bs_type == 'M') {
 			cout << endl <<  "Using adaptive (MOG2) Background subtraction" << endl;
-			track_with_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
+			track_with_adaptive_BS(capture, grayBackground, use_static_back, total_targets, count_LR, count_RL);
 		} else {
 			cout << endl <<  "Using non adaptive (Naive) Background subtraction" << endl;
-			track_with_non_adaptive_BS(capture, grayBackground, use_static_back, next_id, count_LR, count_RL);
+			track_with_non_adaptive_BS(capture, grayBackground, use_static_back, total_targets, count_LR, count_RL);
 		}
 
 		//release the capture before re-opening and looping again.
 		capture->release();
-		cout << "Next id for object (total id'd): " << next_id << endl;
-		cout << "objects moving Left to Right:    " << count_LR << endl;
-		cout << "objects moving Right to Left:    " << count_RL << endl;
+		cout << "total targets created:        " << Target::next_id << endl;
+		cout << "total targets detected:       " << total_targets << endl;
+		cout << "objects moving Left to Right: " << count_LR << endl;
+		cout << "objects moving Right to Left: " << count_RL << endl;
 
 		if(REMOTE)
 			break;
@@ -208,7 +222,7 @@ void set_background(string back_name, bool background_is_video, Mat& grayBackgro
 }
 
 void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
-																double& next_id, int& count_LR, int& count_RL) {
+																double& total_targets, int& count_LR, int& count_RL) {
 	bool debugMode       = false;
 	bool trackingEnabled = false;
 	bool pause           = false;
@@ -221,13 +235,14 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 	}
 
 	cout << endl;
+	cout << "Non adaptive BS" << endl;
 	cout << "Tracking: " << ((trackingEnabled) ? "Enabled" : "Disabled") << endl;
 	cout << "Debug:    " << ((debugMode) ? "Enabled" : "Disabled") << endl;
 	cout << endl;
 
 	Mat frame1, frame2;
 	Mat grayImage1, grayImage2;
-	vector<Object> objects_0, objects_1;
+	vector<Target*> targets;
 	Mat thresholdImage;
 
 	success = capture->read(frame1);
@@ -254,7 +269,7 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 			do_non_adaptive_BS(grayImage1, grayImage2, debugMode, thresholdImage);
 
 		if(trackingEnabled) {
-			search_for_movement( thresholdImage, frame2, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
+			search_for_movement(thresholdImage, frame2, loop_switch, total_targets, count_LR, count_RL, targets); 
 		}
 
 		char c = video_out->output_track_frame(frame2);
@@ -268,6 +283,10 @@ void track_with_non_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool u
 		success = capture->read(frame2);
 		loop_switch = !loop_switch;
 	} // while
+
+	for (vector<Target*>::iterator it = targets.begin(); it != targets.end(); it++) {
+    (*it)->~Target();
+  }
 } // track with non-adaptive BS
 
 //@compares two grayscale images using simple background sutraction
@@ -298,7 +317,7 @@ void do_non_adaptive_BS(Mat &grayImage1, Mat &grayImage2, bool debugMode, Mat &t
 //track objects through video using GMM background subtraction
 //TODO do we actually want gray images for this version?
 void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_static_back,
-														double& next_id, int& count_LR, int& count_RL) {
+														double& total_targets, int& count_LR, int& count_RL) {
 	bool debugMode = false;
 	bool trackingEnabled = false;
 	bool pause = false;
@@ -315,6 +334,7 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 	}
 
 	cout << endl;
+	cout << "Adaptive BS" << endl;
 	cout << "Tracking: " << ((trackingEnabled) ? "Enabled" : "Disabled") << endl;
 	cout << "Debug:    " << ((debugMode) ? "Enabled" : "Disabled") << endl;
 	cout << endl;
@@ -322,7 +342,7 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 	Ptr<BackgroundSubtractorMOG2> subtractor = createBackgroundSubtractorMOG2();
 	Mat frame, image;
 	Mat thresholdImage;
-	vector<Object> objects_0, objects_1;
+	vector<Target*> targets;
 
 	success = capture->read(frame);
 	if(!success){
@@ -337,7 +357,7 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 		do_adaptive_BS(subtractor, image, debugMode, thresholdImage);
 
 		if(trackingEnabled) {
-			search_for_movement( thresholdImage, frame, loop_switch, next_id, count_LR, count_RL, objects_0, objects_1); 
+			search_for_movement(thresholdImage, frame, loop_switch, total_targets, count_LR, count_RL, targets); 
 		}
 
 		char c = video_out->output_track_frame(frame);
@@ -348,9 +368,13 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 		tot_time += double(clock() - start_t ) /  CLOCKS_PER_SEC;
 		frames++;
 	} 
+
 	cout << "Time    = " << tot_time << endl;
 	cout << "Frames  = " << frames << endl;
 	cout << "t per f = " << tot_time / (double)frames << endl;
+	for (vector<Target*>::iterator it = targets.begin(); it != targets.end(); it++) {
+    (*it)->~Target();
+  }
 }
 
 //@finds movement blobs based on GMM background subtraction
@@ -389,8 +413,8 @@ void do_adaptive_BS(Ptr<BackgroundSubtractorMOG2> subtractor, Mat &image, bool d
 //@identifies objects based on threshold image and previous objects
 //@
 void search_for_movement(Mat &thresholdImage, Mat &display, 
-												bool loop_switch, double &next_id, int &count_LR, int &count_RL,
-												vector<Object> &objects_0, vector<Object> &objects_1){
+												bool loop_switch, double &total_targets, int &count_LR, int &count_RL,
+												vector<Target*> &targets){
 
 	int obj_count = 0, i = 0;
 	double mid_row = (double)(thresholdImage.cols >> 1); // half way across the screen
@@ -400,67 +424,60 @@ void search_for_movement(Mat &thresholdImage, Mat &display,
 	Rect2d temp_rect;
 	vector<Rect2d> obj_rects;
 	vector<Vec4i> hierarchy;
-	Object *prev_obj = NULL;
+	vector<Object> objects;
+	Object *prev_obj = NULL;	
+  Target* temp_target;
+  Point2d temp_point;
+
+  bool cont_delete = true;
 
 	thresholdImage.copyTo(temp);
 
-	//TODO clean this up so it makes sense. maybe make some functions
-	if(loop_switch){
-		findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-		if(contours.size() > 0){
-			for(vector< vector<Point> >::iterator it_0 = contours.begin(); it_0 != contours.end(); it_0++) {
-				temp_rect = boundingRect(*it_0);
-				obj_area = temp_rect.area();
+	findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+  for(vector< vector<Point> >::iterator it_0 = contours.begin(); it_0 != contours.end(); it_0++) {
+		temp_rect = boundingRect(*it_0);
+		obj_area = temp_rect.area();
 
-				if(obj_area >= MIN_OBJ_AREA){
-					obj_count++;
-					obj_rects.push_back(Rect2d(temp_rect));
-					objects_0.push_back(Object(*it_0));
-					prev_obj = NULL;
-					if(objects_1.size() > 0) {
-						prev_obj = Trackers::find_previous_object(objects_1, *objects_0.rbegin());
-					}
-					if(prev_obj == NULL) {
-						objects_0.rbegin()->set_id(next_id++);
-						objects_0.rbegin()->set_is_counted(false);
-					} else {
-						update_object(*prev_obj, *objects_0.rbegin(), mid_row, count_LR, count_RL);
-					}
-				}//if obj_area >= MIN_OBJ_AREA
-			draw_centers(objects_0, display);
-			draw_centers(objects_1, display);
-			objects_1.clear();
-			}//outer for
-		} //if contour_1 > 0
-	} else {
-		findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-		if(contours.size() > 0){
-			for(vector< vector<Point> >::iterator it_0 = contours.begin(); it_0 != contours.end(); it_0++) {
-				temp_rect = boundingRect(*it_0);
-				obj_area = temp_rect.area();
-
-				if(obj_area >= MIN_OBJ_AREA){
-					obj_count++;
-					obj_rects.push_back(Rect2d(temp_rect));
-					objects_1.push_back(Object(*it_0));
-					prev_obj = NULL;
-					if(objects_0.size() > 0) {
-						prev_obj = Trackers::find_previous_object(objects_0, *objects_1.rbegin());
-					}
-					if(prev_obj == NULL) {
-						objects_1.rbegin()->set_id(next_id++);
-						objects_1.rbegin()->set_is_counted(false);
-					} else {
-						update_object(*prev_obj, *objects_1.rbegin(), mid_row, count_LR, count_RL);
-					}
-				}
-			draw_centers(objects_0, display);
-			draw_centers(objects_1, display);
-			objects_0.clear();
-			}
+		if(obj_area >= MIN_OBJ_AREA){
+			obj_count++;
+			obj_rects.push_back(Rect2d(temp_rect));
+			objects.push_back(Object(*it_0));
 		}
 	}
 
+  for(vector<Target*>::iterator it = targets.begin(); it != targets.end(); it++) {
+  	(*it)->update(objects, dt);
+
+  	if( ((*it)->get_num_steps() > MIN_ALIVE) && !((*it)->get_is_counted()) ) {
+      (*it)->set_is_counted();
+      total_targets++;
+      // cout << "Target " << (*it)->get_id_num() << " recorded." << endl;
+    }
+  }
+
+  while (cont_delete) {
+	  cont_delete = false;
+	  for(vector<Target*>::iterator it = targets.begin(); it != targets.end(); it++) {
+	  	if((*it)->get_num_empty_steps() > EMPTY_LIMIT) {
+	      (*it)->~Target();
+	      // cout << "Target " << (*it)->get_id_num() << " removed." << endl;
+	      targets.erase(it);
+	      cont_delete = true;
+	      break;
+	    } 
+	  }
+  }
+  
+  for(vector<Object>::iterator it_obj = objects.begin(); it_obj != objects.end(); it_obj++) {
+	  if( !(it_obj->get_is_found()) ) {
+	  	it_obj->get_center(temp_point);
+	  	x_hat_init[0] = temp_point.x;
+	  	x_hat_init[3] = temp_point.y;
+	    temp_target = new Target(n, m, A_init, C_init, Q_init, R_init, P_init, x_hat_init);
+	    targets.push_back(temp_target);
+  	}
+  }
+	draw_centers(targets, display);
 	draw_rectangles(obj_rects, display);
 	line(display, Point(mid_row, 0), Point(mid_row, display.cols), Scalar( 0, 255, 0 ), 2, 1);
 
@@ -526,27 +543,6 @@ void dynamic_threshold(Mat& input_image, Mat& threshold_image, float percent_pea
 
 } //dynamic_threshold
 
-//@searches through list of old object to find match for the new one
-//@returns pointer to the old one
-void update_object(Object &prev_obj, Object &curr_obj, double mid_row, int &count_LR, int &count_RL) {
-	curr_obj.set_id(prev_obj.get_id());
-	curr_obj.set_is_counted(prev_obj.get_is_counted());
-	if( !(curr_obj.get_is_counted()) ) {
-		switch(is_center_crossed(prev_obj, curr_obj, mid_row)) {
-		case 'R':
-			curr_obj.set_is_counted();
-			count_LR++;
-			cout << "object moving Left to Right id = " << curr_obj.get_id() << endl;
-			break;
-		case 'L':
-			curr_obj.set_is_counted();
-			count_RL++;
-			cout << "object moving Right to Left id = " << curr_obj.get_id() << endl;
-			break;
-		//default case (implied) - if it isn't R or L dont do anything
-		} 
-	} 
-}
 
 //@checks if the center is crossed
 //@returns N- no, L- right to left, R- left to right
@@ -721,13 +717,14 @@ void draw_rectangles(vector<Rect2d> &obj_rects, Mat &display) {
 }
 
 //@draws the rectagles
-void draw_centers(vector<Object> &objects, Mat &display) {
+//TODO make this work with targets
+void draw_centers(vector<Target*> &targets, Mat &display) {
 	Point2d temp_pt;
-	for(unsigned j = 0; j < objects.size(); j++) {
-		objects[j].get_center(temp_pt);
+	for(vector<Target*>::iterator it = targets.begin(); it != targets.end(); it++) {
+		(*it)->prev_obj.get_center(temp_pt);
 	  circle( display, temp_pt, 5, Scalar( 0, 0, 255 ), 2, 1 );
-	  //circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 255, 255 ), 2, 1 );
-	  putText(display,"Object: " + int_to_str(objects[j].get_id()), temp_pt, 1, 1, Scalar(255,0,0), 2);
+	  // circle( display, temp_pt, MAX_DIST_SQD, Scalar( 0, 255, 255 ), 2, 1 );
+	  putText(display,"Object: " + int_to_str((*it)->get_id_num()), temp_pt, 1, 1, Scalar(255,0,0), 2);
 	}
 }
 

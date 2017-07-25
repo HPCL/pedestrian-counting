@@ -37,30 +37,26 @@ using namespace cv;
 /*************************** Constructors ***************************/
 
 Object::Object() {
-  id = -1;
-  is_counted = false;
+  is_found = false;
 }
 
 Object::Object(const vector<Point> &contour) {
   Moments temp_moment = moments(contour);
   center = Point2d(temp_moment.m10/temp_moment.m00 , temp_moment.m01/temp_moment.m00);
-  id = -1;
-  is_counted = false;
   box = boundingRect(contour);
+  is_found = false;
 }
 
-Object::Object(const Point2d &new_center, int new_id, Rect2d &new_box) {
+Object::Object(const Point2d &new_center, Rect2d &new_box) {
   center = Point2d(new_center);
-  id = new_id;
-  is_counted = false;
   box = Rect2d(new_box);
+  is_found = false;
 }
 
 Object::Object(const Object &other) {
   other.get_center(center);
-  id = other.get_id();
-  is_counted = other.get_is_counted();
   other.get_box(box);
+  is_found = other.get_is_found();
 }
 
 Object::~Object() {
@@ -118,33 +114,21 @@ void Object::set_center(Point2d &new_center) {
 
 void Object::set_center(vector<Point> &contour) {
   Moments temp_moment = moments(contour);
-  center = Point2d(temp_moment.m10/temp_moment.m00 , temp_moment.m01/temp_moment.m00);
-}
-
-void Object::set_id(int new_id) {
-  id = new_id;
-}
-
-void Object::set_is_counted(bool new_is_counted /* = true*/){
-  is_counted = new_is_counted;
+  center = Point2d(temp_moment.m10/temp_moment.m00, temp_moment.m01/temp_moment.m00);
 }
 
 void Object::set_box(Rect2d &new_box) {
   box = Rect2d(new_box);
 }
 
+void Object::set_is_found(bool _is_found /* = true*/) {
+  is_found = _is_found;
+}
+
 /*************************** Getters ***************************/
 
 void Object::get_center(Point2d &out_center) const {
   out_center = Point2d(center);
-}
-
-int  Object::get_id() const {
-  return id;
-}
-
-bool Object::get_is_counted() const {
-  return is_counted;
 }
 
 void Object::get_box(Rect2d &out_box) const {
@@ -157,4 +141,8 @@ double Object::get_box_height(){
 
 double Object::get_box_width(){
   return box.width;
+}
+
+bool Object::get_is_found() const {
+  return is_found;
 }
