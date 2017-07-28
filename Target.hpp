@@ -39,7 +39,7 @@ extern "C" {
 
 class Target {
 public:
- Target(int _n, int _m, TYPE* A_init, TYPE* C_init, TYPE* Q_init, TYPE* R_init, TYPE* P_init, TYPE* x_hat_init);
+ Target(int _n, int _m, KALMAN_TYPE* A_init, KALMAN_TYPE* C_init, KALMAN_TYPE* Q_init, KALMAN_TYPE* R_init, KALMAN_TYPE* P_init, KALMAN_TYPE* x_hat_init);
   ~Target();
 
   void update(vector<Object> &objects, double dt);
@@ -69,7 +69,7 @@ public:
 
 private:
   
-  TYPE *A, *C, *Q, *R, *P, *K, *x, *y, *x_hat,
+  KALMAN_TYPE *A, *C, *Q, *R, *P, *K, *x, *y, *x_hat,
        *x_hat_new, *A_T, *C_T, *id,
        *temp_1, *temp_2, *temp_3, *temp_4;
 
