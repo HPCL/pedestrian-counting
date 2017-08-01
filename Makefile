@@ -14,7 +14,7 @@ ALL_LIBS += -lopencv_imgcodecs #
 OCV_PATH  = -L/usr/local/packages/opencv/lib # on arya 
 OCV_PATH += -I/usr/local/packages/opencv/include # on arya
 
-KALMAN_PATH = ../kalman-filters/
+KALMAN_PATH = ~/kalman-filters/
 
 KALMAN_FILES  = $(KALMAN_PATH)basic-c/linear_algebra.o # 
 KALMAN_FILES += $(KALMAN_PATH)basic-c/kalman_filter.o #
@@ -36,8 +36,10 @@ CBLAS_LINK = -I${OPENBLASINC} -L${OPENBLASLIB} -lopenblas -lgfortran
 CBLAS_SYS  = -DSYS=\"sys_cblas.h\"
 
 TUNED_KAL_FILES  = $(KALMAN_PATH)basic-c/tuning_kalman/non_tuned.o 
-TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/_predict.o 
-TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/_correct.o 
+# TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/_predict.o 
+# TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/_correct.o 
+TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/predict.o 
+TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/correct.o 
 
 TUNED_LA_FILES  = $(KALMAN_PATH)/basic-c/tuning/non_tuned.o
 TUNED_LA_FILES += $(KALMAN_PATH)/basic-c/tuning/_add_mat.o
@@ -45,9 +47,9 @@ TUNED_LA_FILES += $(KALMAN_PATH)/basic-c/tuning/_compute_LUP_inline.o
 TUNED_LA_FILES += $(KALMAN_PATH)/basic-c/tuning/_multiply_matrix.o
 TUNED_LA_FILES += $(KALMAN_PATH)/basic-c/tuning/_multiply_matrix_by_scalar.o
 TUNED_LA_FILES += $(KALMAN_PATH)/basic-c/tuning/_transpose_matrix.o
-TUNED_LA_FILES += $(KALMAN_PATH)/experiments/kalman_filter.o # 
+TUNED_LA_FILES += $(KALMAN_PATH)basic-c/kalman_filter.o  # 
 
-all: counter counter_openblas counter_KAL counter_LA counter_mkl counter_atlas
+all: counter counter_KAL counter_LA counter_mkl counter_atlas counter_openblas 
 		./counter.out config_recommended.txt
 		./counter_LA.out config_recommended.txt
 		./counter_KAL.out config_recommended.txt
@@ -80,6 +82,16 @@ Target.o: Target.cpp Target.hpp
 
 counter: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
 		$(CC) $(OCV_PATH) counter.cpp useful_functions.o object.o image_input.o image_output.o trackers.o Target.o $(KALMAN_FILES) -o counter.out $(ALL_LIBS)
+
+counter_tau: counter.cpp
+	  gcc -c -g $(KALMAN_PATH)basic-c/linear_algebra.c 
+	  gcc -c -g $(KALMAN_PATH)basic-c/kalman_filter.c
+		taucxx $(OCV_PATH) counter.cpp useful_functions.cpp object.cpp image_input.cpp image_output.cpp trackers.cpp Target.cpp kalman_filter.o linear_algebra.o -o counter.out $(ALL_LIBS)
+
+counter_gprof: counter.cpp
+	  gcc -c -g -pg $(KALMAN_PATH)basic-c/linear_algebra.c 
+	  gcc -c -g -pg $(KALMAN_PATH)basic-c/kalman_filter.c
+		g++ -pg $(OCV_PATH) counter.cpp useful_functions.cpp object.cpp image_input.cpp image_output.cpp trackers.cpp Target.cpp kalman_filter.o linear_algebra.o -o counter.out $(ALL_LIBS)
 
 counter_mkl: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
 	  icc $(KALMAN_PATH)kalman-blas/kalman_filter.c -c $(MKL_SYS) $(MKL_OPT) $(MKL_LINK)
