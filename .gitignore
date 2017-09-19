@@ -14,6 +14,8 @@
 
 # other
 *.dat
+dots*
+*.csv
 
 # git script
 git_acp.bash

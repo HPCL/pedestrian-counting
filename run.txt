@@ -1,0 +1,121 @@
+Thu 31 Aug 20:17:07 UTC 2017
+using video: ../test_videos/dots.mp4
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+
+Using adaptive (MOG2) Background subtraction
+
+Adaptive BS
+Tracking: Enabled
+Debug:    Enabled
+
+Time    = 27510.8
+Frames  = 9001
+t per f = 3.05642
+total targets created:        315800
+total targets detected:       315554
+objects moving Left to Right: 0
+objects moving Right to Left: 0
+
+real	213m9.118s
+user	457m9.380s
+sys	1m23.750s
+Thu 31 Aug 23:50:16 UTC 2017
+using video: ../test_videos/dots.mp4
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+
+Using adaptive (MOG2) Background subtraction
+
+Adaptive BS
+Tracking: Enabled
+Debug:    Enabled
+
+Time    = 69582.9
+Frames  = 9001
+t per f = 7.73057
+total targets created:        315800
+total targets detected:       315554
+objects moving Left to Right: 0
+objects moving Right to Left: 0
+
+real	363m25.584s
+user	657m4.010s
+sys	502m47.800s
+Fri  1 Sep 05:53:42 UTC 2017
+using video: ../test_videos/dots.mp4
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+
+Using adaptive (MOG2) Background subtraction
+
+Adaptive BS
+Tracking: Enabled
+Debug:    Enabled
+
+Time    = 26497.3
+Frames  = 9001
+t per f = 2.94382
+total targets created:        315800
+total targets detected:       315554
+objects moving Left to Right: 0
+objects moving Right to Left: 0
+
+real	195m42.003s
+user	440m20.130s
+sys	1m19.830s
+Fri  1 Sep 09:09:24 UTC 2017
+using video: ../test_videos/dots.mp4
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+
+Using adaptive (MOG2) Background subtraction
+
+Adaptive BS
+Tracking: Enabled
+Debug:    Enabled
+
+Time    = 26319
+Frames  = 9001
+t per f = 2.92401
+total targets created:        315800
+total targets detected:       315554
+objects moving Left to Right: 0
+objects moving Right to Left: 0
+
+real	195m15.267s
+user	437m21.580s
+sys	1m20.700s
+Fri  1 Sep 12:24:39 UTC 2017
+using video: ../test_videos/dots.mp4
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+OpenCV: FFMPEG: tag 0x34363258/'X264' is not supported with codec id 28 and format 'h264 / raw H.264 video'
+
+Using adaptive (MOG2) Background subtraction
+
+Adaptive BS
+Tracking: Enabled
+Debug:    Enabled
+
+Time    = 25629.7
+Frames  = 9001
+t per f = 2.84743
+total targets created:        801030
+total targets detected:       798468
+objects moving Left to Right: 0
+objects moving Right to Left: 0
+
+real	147m20.663s
+user	425m39.260s
+sys	1m36.040s
+Fri  1 Sep 14:52:00 UTC 2017
