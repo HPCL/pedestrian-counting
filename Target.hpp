@@ -36,6 +36,7 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <ctime>
+#include <time.h>
 
 class Target {
 public:
@@ -56,6 +57,9 @@ public:
   double get_radius();
   void   set_radius(double r);
 
+  double get_update_time();
+  void   set_update_time(double ut);
+
   int  get_id_num();
   void set_id_num(int _id_num);
 
@@ -64,6 +68,7 @@ public:
 
   static int next_id;
   static double max_dist_sqd;
+  static double update_time;
 
   Object prev_obj;
 

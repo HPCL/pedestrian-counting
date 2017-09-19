@@ -14,7 +14,15 @@
 
 # other
 *.dat
+profile.*
+dots_*
+MULTI__*
+dots*
+*.csv
+
 
 # git script
 git_acp.bash
+
+
 

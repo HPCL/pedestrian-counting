@@ -1,4 +1,4 @@
-CC = icpc
+CC = icpc 
 # CC = g++
 
 #TODO figure out which I actually need
@@ -28,7 +28,7 @@ MKL_LINK = -L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_sequential -lmkl_cor
 MKL_OPT  = -DMKL_ILP64 -I${MKLROOT}/include #
 MKL_SYS  = -DSYS=\"sys_mkl.h\"
 
-ATLAS_LINK = -L${ATLASLIB} -lcblas -llapack -lptcblas -lpthread -latlas
+ATLAS_LINK = -L${ATLASLIB} -lcblas -llapack -lptcblas -latlas -lpthread -lm 
 ATLAS_INC  = -I${ATLASINC}
 ATLAS_SYS  = -DSYS=\"sys_atlas.h\"
 
@@ -36,10 +36,14 @@ CBLAS_LINK = -I${OPENBLASINC} -L${OPENBLASLIB} -lopenblas -lgfortran
 CBLAS_SYS  = -DSYS=\"sys_cblas.h\"
 
 TUNED_KAL_FILES  = $(KALMAN_PATH)basic-c/tuning_kalman/non_tuned.o 
-# TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/_predict.o 
-# TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/_correct.o 
-TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/predict.o 
-TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/correct.o 
+TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/_predict.o 
+TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/_correct.o 
+# TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/predict.o 
+# TUNED_KAL_FILES += $(KALMAN_PATH)basic-c/tuning_kalman/correct.o 
+
+TUNED_KAL_OMP_FILES  = $(KALMAN_PATH)basic-c/tuning_kalman_omp/non_tuned.o
+TUNED_KAL_OMP_FILES += $(KALMAN_PATH)basic-c/tuning_kalman_omp/_predict.o 
+TUNED_KAL_OMP_FILES += $(KALMAN_PATH)basic-c/tuning_kalman_omp/_correct.o 
 
 TUNED_LA_FILES  = $(KALMAN_PATH)/basic-c/tuning/non_tuned.o
 TUNED_LA_FILES += $(KALMAN_PATH)/basic-c/tuning/_add_mat.o
@@ -49,14 +53,28 @@ TUNED_LA_FILES += $(KALMAN_PATH)/basic-c/tuning/_multiply_matrix_by_scalar.o
 TUNED_LA_FILES += $(KALMAN_PATH)/basic-c/tuning/_transpose_matrix.o
 TUNED_LA_FILES += $(KALMAN_PATH)basic-c/kalman_filter.o  # 
 
-all: counter counter_KAL counter_LA counter_mkl counter_atlas counter_openblas 
-		./counter.out config_recommended.txt
-		./counter_LA.out config_recommended.txt
-		./counter_KAL.out config_recommended.txt
-		./counter_mkl.out config_recommended.txt
-		./counter_atlas.out config_recommended.txt
-		./counter_openblas.out config_recommended.txt
+TUNED_LA_OMP_FILES  = $(KALMAN_PATH)/basic-c/tuning_omp/non_tuned.o
+TUNED_LA_OMP_FILES += $(KALMAN_PATH)/basic-c/tuning_omp/_add_mat.o
+TUNED_LA_OMP_FILES += $(KALMAN_PATH)/basic-c/tuning_omp/_compute_LUP_inline.o
+TUNED_LA_OMP_FILES += $(KALMAN_PATH)/basic-c/tuning_omp/_multiply_matrix.o
+TUNED_LA_OMP_FILES += $(KALMAN_PATH)/basic-c/tuning_omp/_multiply_matrix_by_scalar.o
+TUNED_LA_OMP_FILES += $(KALMAN_PATH)/basic-c/tuning_omp/_transpose_matrix.o
+TUNED_LA_OMP_FILES += $(KALMAN_PATH)basic-c/kalman_filter.o  # 
 
+# VID = config_recommended.txt
+VID = dots.txt
+
+all: counter counter_KAL counter_LA counter_LA_omp counter_mkl counter_atlas counter_KAL_omp
+		./counter.out $(VID)
+		./counter_mkl.out $(VID)
+		./counter_atlas.out $(VID)
+		./counter_LA.out $(VID)
+		export OMP_NUM_THREADS=4 & ./counter_LA_omp.out $(VID)
+		./counter_KAL.out $(VID)
+		export OMP_NUM_THREADS=4 & ./counter_KAL_omp.out $(VID)
+
+all_dots: counter counter_KAL counter_LA counter_mkl counter_atlas
+	./run_dots.sh &> all_dots.out &
 
 object.o: object.cpp object.h
 		$(CC) $(OCV_PATH) -c object.cpp
@@ -83,10 +101,16 @@ Target.o: Target.cpp Target.hpp
 counter: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
 		$(CC) $(OCV_PATH) counter.cpp useful_functions.o object.o image_input.o image_output.o trackers.o Target.o $(KALMAN_FILES) -o counter.out $(ALL_LIBS)
 
-counter_tau: counter.cpp
-	  gcc -c -g $(KALMAN_PATH)basic-c/linear_algebra.c 
-	  gcc -c -g $(KALMAN_PATH)basic-c/kalman_filter.c
-		taucxx $(OCV_PATH) counter.cpp useful_functions.cpp object.cpp image_input.cpp image_output.cpp trackers.cpp Target.cpp kalman_filter.o linear_algebra.o -o counter.out $(ALL_LIBS)
+# counter_tau: counter.cpp
+# 	  taucc -c -g $(KALMAN_PATH)basic-c/linear_algebra.c 
+# 	  taucc -c -g $(KALMAN_PATH)basic-c/kalman_filter.c
+# 		taucxx -g $(OCV_PATH) counter.cpp useful_functions.cpp object.cpp image_input.cpp image_output.cpp trackers.cpp Target.cpp kalman_filter.o linear_algebra.o -o counter.out $(ALL_LIBS)
+
+counter_tau_sample: counter.cpp
+	  icc -c -g $(KALMAN_PATH)basic-c/linear_algebra.c 
+	  icc -c -g $(KALMAN_PATH)basic-c/kalman_filter.c
+		icpc -g $(OCV_PATH) counter.cpp useful_functions.cpp object.cpp image_input.cpp image_output.cpp trackers.cpp Target.cpp kalman_filter.o linear_algebra.o -o counter.out $(ALL_LIBS)
+		tau_exec -ebs -T papi,serial,trace ./counter.out dots.txt
 
 counter_gprof: counter.cpp
 	  gcc -c -g -pg $(KALMAN_PATH)basic-c/linear_algebra.c 
@@ -108,8 +132,51 @@ counter_openblas: counter.cpp useful_functions.o image_input.o image_output.o ob
 counter_LA: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
 		$(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o trackers.o Target.o $(TUNED_LA_FILES) -o counter_LA.out $(ALL_LIBS)
 
+counter_LA_omp: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
+		icpc $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o trackers.o Target.o $(TUNED_LA_OMP_FILES) -o counter_LA_omp.out $(ALL_LIBS) -fopenmp
+
 counter_KAL: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
 		$(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o trackers.o Target.o $(TUNED_KAL_FILES) -o counter_KAL.out $(ALL_LIBS)
+
+counter_KAL_omp: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
+		$(CC) $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o trackers.o Target.o $(TUNED_KAL_OMP_FILES) -o counter_KAL_omp.out $(ALL_LIBS) -fopenmp
+
+
+gcc: gcc_libs gcc_counter gcc_counter_atlas gcc_counter_LA gcc_counter_KAL 
+		# ./counter.out config_recommended.txt
+		# ./counter_atlas.out config_recommended.txt
+		# ./counter_LA.out config_recommended.txt
+		# ./counter_KAL.out config_recommended.txt
+		./counter.out dots.txt
+		./counter_atlas.out dots.txt
+		./counter_LA.out dots.txt
+		./counter_KAL.out dots.txt
+
+gcc_libs:
+		gcc-4.9 $(OCV_PATH) -c object.cpp
+		gcc-4.9 $(OCV_PATH) -c useful_functions.cpp 
+		gcc-4.9 $(OCV_PATH) -c image_input.cpp 
+		gcc-4.9 $(OCV_PATH) -c image_output.cpp 
+		gcc-4.9 $(OCV_PATH) -c trackers.cpp
+		gcc-4.9 $(OCV_PATH) -c Target.cpp	
+
+gcc_counter_mkl: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
+	  icc $(KALMAN_PATH)kalman-blas/kalman_filter.c -c $(MKL_SYS) $(MKL_OPT) $(MKL_LINK)
+		g++-4.9 $(OCV_PATH) $(CBLAS_LINK) counter.cpp useful_functions.cpp object.o image_input.o image_output.o trackers.o Target.o $(BLAS_KAL_FILES) -o counter_mkl.out $(ALL_LIBS) $(MKL_SYS) $(MKL_OPT) $(MKL_LINK)
+
+gcc_counter: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
+		g++-4.9 $(OCV_PATH) counter.cpp useful_functions.o object.o image_input.o image_output.o trackers.o Target.o $(KALMAN_FILES) -o counter.out $(ALL_LIBS)
+
+gcc_counter_atlas: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
+	  gcc-4.9 $(KALMAN_PATH)kalman-blas/kalman_filter.c -c $(ATLAS_SYS) $(ATLAS_LINK) $(ATLAS_INC)
+		g++-4.9 $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o trackers.o Target.o $(BLAS_KAL_FILES) -o counter_atlas.out $(ALL_LIBS) $(ATLAS_SYS) $(ATLAS_LINK) $(ATLAS_INC)
+
+gcc_counter_LA: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
+		g++-4.9 $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o trackers.o Target.o $(TUNED_LA_FILES) -o counter_LA.out $(ALL_LIBS)
+
+gcc_counter_KAL: counter.cpp useful_functions.o image_input.o image_output.o object.o trackers.o Target.o
+		g++-4.9 $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o trackers.o Target.o $(TUNED_KAL_FILES) -o counter_KAL.out $(ALL_LIBS)
+ 
 
 counter_gdb:
 	  $(CC) -g $(OCV_PATH) counter.cpp useful_functions.cpp object.o image_input.o image_output.o trackers.o Target.o -o counter.out $(ALL_LIBS)
@@ -120,5 +187,5 @@ get_background: get_background.cpp
 
 
 clean:
-	rm -f *.o *.out *.h264
+	rm -f *.o *.out *.h264 profile.*
 

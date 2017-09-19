@@ -16,6 +16,7 @@
 #include "Target.hpp"
 
 int Target::next_id = 0;
+double Target::update_time = 0.0;
 double Target::max_dist_sqd = 6000000;
 
 Target::Target(int _n, int _m, KALMAN_TYPE* A_init, KALMAN_TYPE* C_init, KALMAN_TYPE* Q_init, KALMAN_TYPE* R_init, KALMAN_TYPE* P_init, KALMAN_TYPE* x_hat_init) {
@@ -24,6 +25,7 @@ Target::Target(int _n, int _m, KALMAN_TYPE* A_init, KALMAN_TYPE* C_init, KALMAN_
 
   num_steps = 0;
   num_empty_steps = 0;
+  update_time = 0.0;
 
   radius = 10000;
   id_num = next_id++;
@@ -60,10 +62,17 @@ Target::~Target() {
 void Target::update(vector<Object> &objects, double dt) {
 
   bool found;
+  clock_t t1,t2,t3,t4;
 
+  t1 = clock();
   predict();
+  t2 = clock();
   found = choose_next_point(objects);
+  t3 = clock();
   correct(found);
+  t4 = clock();
+
+  update_time += ((t2-t1) + (t4-t3));
 
   num_steps++;
 }

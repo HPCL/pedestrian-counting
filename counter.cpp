@@ -129,10 +129,10 @@ int main(int argc, char** argv){
 
 	int num_videos = 4;
 	char** name_list   = new char*[4]; 
-  name_list[0] = (char*)"tracking_video";
-  name_list[1] = (char*)"difference_image";
-  name_list[2] = (char*)"threshold_image";
-  name_list[3] = (char*)"final_threshold";
+  name_list[0] = (char*)"tau_tracking_video";
+  name_list[1] = (char*)"tau_difference_image";
+  name_list[2] = (char*)"tau_threshold_image";
+  name_list[3] = (char*)"tau_final_threshold";
 
 	if(argc == 2) {
 		get_settings_file(argc, argv, vid_name, back_name, bs_type);
@@ -371,7 +371,10 @@ void track_with_adaptive_BS(ImageInput* capture, Mat& grayBackground, bool use_s
 
 	cout << "Time    = " << tot_time << endl;
 	cout << "Frames  = " << frames << endl;
-	cout << "t per f = " << tot_time / (double)frames << endl;
+	cout << "t per f = " << tot_time / (double)frames << endl << endl;
+
+	cout << "Update Time = " << Target::update_time << endl;
+	cout << "ut per f    = " << Target::update_time / (double)frames << endl;
 	for (vector<Target*>::iterator it = targets.begin(); it != targets.end(); it++) {
     (*it)->~Target();
   }
